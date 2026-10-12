@@ -275,8 +275,14 @@ const base = baseUrl();
   </div>
 </Base>
 
-<style>
-  .campo {
+<style is:global>
+  /*
+   * Global ceñido a #panel a propósito: la lista, los toggles y las
+   * insignias los crea el JS en el navegador, y el scope automático de
+   * Astro (data-astro-cid en el HTML del servidor) nunca los alcanza.
+   * Todo va prefijado con #panel para no fugar al resto del sitio.
+   */
+  #panel .campo {
     width: 100%;
     border: 1px solid var(--line);
     background: var(--bg);
@@ -286,30 +292,30 @@ const base = baseUrl();
     font: inherit;
   }
 
-  .campo[aria-invalid="true"] {
+  #panel .campo[aria-invalid="true"] {
     border-color: #b3261e;
   }
 
-  .etiqueta {
+  #panel .etiqueta {
     font-size: 0.875rem;
     font-weight: 600;
   }
 
-  .req {
+  #panel .req {
     color: #b3261e;
   }
 
-  .pista {
+  #panel .pista {
     font-size: 0.78rem;
     color: var(--muted);
   }
 
-  .error-campo {
+  #panel .error-campo {
     font-size: 0.82rem;
     color: #b3261e;
   }
 
-  .btn {
+  #panel .btn {
     border: 1px solid var(--line);
     background: var(--bg);
     color: var(--accent-ink);
@@ -320,16 +326,16 @@ const base = baseUrl();
     min-height: 2.75rem;
   }
 
-  .btn:hover {
+  #panel .btn:hover {
     border-color: var(--accent);
   }
 
-  .btn:disabled {
+  #panel .btn:disabled {
     opacity: 0.5;
     cursor: default;
   }
 
-  .btn.primario {
+  #panel .btn.primario {
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
@@ -337,29 +343,29 @@ const base = baseUrl();
   }
 
   @media (prefers-color-scheme: dark) {
-    .btn.primario {
+    #panel .btn.primario {
       color: #101418;
     }
   }
 
-  .btn.peligro {
+  #panel .btn.peligro {
     color: #b3261e;
   }
 
-  .muted {
+  #panel .muted {
     color: var(--muted);
   }
 
-  .small {
+  #panel .small {
     font-size: 0.75rem;
   }
 
-  .break-all {
+  #panel .break-all {
     overflow-wrap: anywhere;
   }
 
   /* Tarjeta del editor: secciones separadas con aire. */
-  .tarjeta {
+  #panel .tarjeta {
     border: 1px solid var(--line);
     border-radius: 0.5rem;
     padding: 1.25rem;
@@ -367,7 +373,7 @@ const base = baseUrl();
     gap: 1.5rem;
   }
 
-  .tarjeta fieldset {
+  #panel .tarjeta fieldset {
     border: 0;
     padding: 0;
     margin: 0;
@@ -377,18 +383,18 @@ const base = baseUrl();
     padding-top: 1.25rem;
   }
 
-  .tarjeta legend {
+  #panel .tarjeta legend {
     font-weight: 700;
     padding: 0 0.5rem 0 0;
   }
 
-  .tarjeta-cabeza {
+  #panel .tarjeta-cabeza {
     display: grid;
     gap: 0.25rem;
   }
 
   /* Barra de acciones siempre visible al pie del formulario. */
-  .barra {
+  #panel .barra {
     position: sticky;
     bottom: 0;
     display: flex;
@@ -401,8 +407,8 @@ const base = baseUrl();
   }
 
   /* Opciones de visibilidad como tarjetas elegibles. */
-  .opcion,
-  .check {
+  #panel .opcion,
+  #panel .check {
     display: flex;
     gap: 0.65rem;
     align-items: flex-start;
@@ -412,25 +418,25 @@ const base = baseUrl();
     cursor: pointer;
   }
 
-  .opcion:has(input:checked) {
+  #panel .opcion:has(input:checked) {
     border-color: var(--accent);
   }
 
-  .opcion strong,
-  .check strong {
+  #panel .opcion strong,
+  #panel .check strong {
     display: block;
     font-size: 0.9rem;
   }
 
-  .opcion small,
-  .check small {
+  #panel .opcion small,
+  #panel .check small {
     display: block;
     color: var(--muted);
     font-size: 0.78rem;
   }
 
-  .opcion input,
-  .check input {
+  #panel .opcion input,
+  #panel .check input {
     margin-top: 0.2rem;
     width: 1.1rem;
     height: 1.1rem;
@@ -438,11 +444,16 @@ const base = baseUrl();
     flex-shrink: 0;
   }
 
-  .check {
+  #panel .check {
     margin-top: 0.5rem;
   }
 
-  .fila {
+  #panel .check input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  #panel .fila {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -453,39 +464,49 @@ const base = baseUrl();
     padding: 0.75rem 0.9rem;
   }
 
-  .fila.toggle {
+  #panel .fila.toggle {
     justify-content: flex-start;
     gap: 0.6rem;
     cursor: pointer;
   }
 
-  .fila-info {
+  #panel .fila.toggle input[type="checkbox"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  #panel .fila-info {
     display: grid;
     gap: 0.15rem;
   }
 
-  .fila-nombre {
+  #panel .fila-nombre {
     font-weight: 600;
   }
 
-  .fila-acciones {
+  #panel .fila-acciones {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
   }
 
-  .fila-acciones .btn {
+  #panel .fila-acciones .btn {
     min-height: 2.75rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
   }
 
-  .chips {
+  #panel .chips {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
     margin-top: 0.25rem;
   }
 
-  .chip {
+  #panel .chip {
     font-family: var(--font-mono);
     font-size: 0.68rem;
     border: 1px solid var(--line);
@@ -494,17 +515,17 @@ const base = baseUrl();
     color: var(--muted);
   }
 
-  .chip.alerta {
+  #panel .chip.alerta {
     color: #b3261e;
     border-color: #b3261e;
   }
 
-  .chip.ok {
+  #panel .chip.ok {
     color: var(--accent-ink);
     border-color: var(--accent);
   }
 
-  .caja-error {
+  #panel .caja-error {
     border: 1px solid #b3261e;
     border-radius: 0.375rem;
     padding: 0.75rem 1rem;
@@ -512,12 +533,12 @@ const base = baseUrl();
     font-size: 0.9rem;
   }
 
-  .caja-error ul {
+  #panel .caja-error ul {
     list-style: disc;
     padding-left: 1.25rem;
   }
 
-  .caja-exito {
+  #panel .caja-exito {
     border: 1px solid var(--accent);
     border-radius: 0.5rem;
     padding: 1rem 1.25rem;
