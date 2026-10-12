@@ -1,4 +1,13 @@
 ---
+/**
+ * El teléfono se muestra como la palabra "Teléfono" y no como el número: el
+ * enlace `tel:` abre igual el marcador o la app de llamadas del dispositivo,
+ * pero así el número no queda en el texto plano de la página.
+ *
+ * El `aria-label` hace dos cosas: describe el enlace cuando se lee fuera de
+ * contexto (una lista de enlaces suelta no dice a quién llama), e incluye la
+ * palabra visible, que es lo que exige WCAG 2.5.3 (Label in Name).
+ */
 const year = new Date().getFullYear();
 ---
 
@@ -10,7 +19,9 @@ const year = new Date().getFullYear();
         <a href="mailto:felipehiguera@outlook.cl">felipehiguera@outlook.cl</a>
       </li>
       <li>
-        <a href="tel:+56931110973">+56 9 3111 0973</a>
+        <a href="tel:+56931110973" aria-label="Teléfono: llamar al +56 9 3111 0973"
+          >Teléfono</a
+        >
       </li>
       <li>
         <a
