@@ -3,8 +3,12 @@ import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import ProjectCard from "../components/ProjectCard.astro";
 
-const casos = (await getCollection("proyectos", ({ data }) => data.category === "soporte-it"))
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const casos = (
+  await getCollection(
+    "proyectos",
+    ({ data }) => data.category === "soporte-it" && !data.draft,
+  )
+).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 ---
 
 <Base

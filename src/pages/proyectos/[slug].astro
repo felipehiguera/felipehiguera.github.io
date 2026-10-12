@@ -9,7 +9,8 @@ import SpecList from "../../components/SpecList.astro";
 import { etiquetaCategoria, fechaCorta, slugDe } from "../../utils/proyectos";
 
 export async function getStaticPaths() {
-  const proyectos = await getCollection("proyectos");
+  // Los borradores no generan ruta: despublicar es real, no solo visual.
+  const proyectos = await getCollection("proyectos", ({ data }) => !data.draft);
   return proyectos.map((entry) => ({
     params: { slug: slugDe(entry.id) },
     props: { entry },

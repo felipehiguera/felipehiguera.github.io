@@ -14,6 +14,11 @@ const proyectos = defineCollection({
       summary: z.string(),
       date: z.coerce.date(),
       featured: z.boolean().default(false),
+      /**
+       * Borrador: el proyecto no aparece en ningún listado y su ruta no se
+       * genera, así queda despublicado de verdad. Lo alterna el panel `/admin`.
+       */
+      draft: z.boolean().default(false),
       category: z.enum(["dibujo-tecnico", "cad-cam", "soporte-it"]),
       cover: image().optional(),
       software: z.array(z.string()).default([]),

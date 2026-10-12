@@ -1,17 +1,21 @@
 ---
+import { seccionActiva, type Seccion } from "../utils/secciones";
+
 const base = import.meta.env.BASE_URL;
 
 interface NavItem {
   href: string;
   label: string;
+  /** Sección que gobierna este link, o `null` si siempre se muestra. */
+  seccion: Seccion | null;
 }
 
 const nav: NavItem[] = [
-  { href: base, label: "Inicio" },
-  { href: `${base}proyectos`, label: "Proyectos" },
-  { href: `${base}soporte-it`, label: "Soporte IT" },
-  { href: `${base}cv`, label: "CV" },
-];
+  { href: base, label: "Inicio", seccion: null },
+  { href: `${base}proyectos`, label: "Proyectos", seccion: "proyectos" },
+  { href: `${base}soporte-it`, label: "Soporte IT", seccion: "soporte-it" },
+  { href: `${base}cv`, label: "CV", seccion: "cv" },
+].filter((item) => item.seccion === null || seccionActiva(item.seccion));
 
 function normalize(path: string): string {
   return path.length > 1 ? path.replace(/\/$/, "") : path;
