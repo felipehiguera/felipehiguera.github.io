@@ -23,13 +23,16 @@ Construir un portafolio web estático, rápido y sobrio para un perfil de **Dibu
 - **React solo si hace falta** como island (`client:visible`); por defecto, componentes `.astro`.
 - **CSS:** CSS plano con variables o Tailwind; elegir una y mantenerla. Sin librerías de UI pesadas.
 - **Visor 3D:** web component `<model-viewer>` de Google, cargado con carga diferida, modelos en `.glb`.
-- **Deploy:** GitHub Pages con GitHub Actions (`withastro/action`).
+- **Deploy:** Cloudflare Pages con GitHub Actions (Wrangler). Un solo `dist/`:
+  landing en `/`, portfolio en `/portafolio/` (ver `scripts/assemble-dist.mjs`).
 - **Imágenes:** `astro:assets` / componente `<Image>` → WebP/AVIF, tamaños responsivos.
 
-### Configuración GitHub Pages
-- Definir `site` y `base` en `astro.config.mjs` según el repo (`https://<usuario>.github.io/<repo>`). Si el repo es `<usuario>.github.io`, `base` va vacío.
-- Usar siempre rutas con `import.meta.env.BASE_URL` o helpers de Astro; nada de rutas absolutas hardcodeadas.
-- Workflow en `.github/workflows/deploy.yml` con permisos `pages: write` e `id-token: write`.
+### Configuración del deploy
+- `site: https://www.fhiguera.fyi` y `base: /portafolio` en `astro.config.mjs`.
+- Usar siempre el helper `baseUrl()` (`src/utils/base.ts`); nada de rutas absolutas hardcodeadas.
+- Workflow en `.github/workflows/deploy.yml`: build + `wrangler pages deploy dist`.
+  Necesita los secrets `CLOUDFLARE_API_TOKEN` (permiso Pages:Edit) y
+  `CLOUDFLARE_ACCOUNT_ID`.
 - Páginas estáticas reales (una por caso), así que no se necesita hack de SPA ni `404.html` para routing.
 
 ## Estructura de páginas

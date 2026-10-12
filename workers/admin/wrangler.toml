@@ -3,7 +3,7 @@
 # La ruta /api/* vive en el MISMO host que el portfolio
 # (www.fhiguera.fyi). Así no hay CORS ni claves públicas:
 # el navegador llama a /api/admin y Cloudflare lo deriva acá.
-# Todo lo demás lo sirve el landing (Pages) o el proxy (ver ../portafolio).
+# Todo lo demás lo sirve Pages (landing en /, portfolio en /portafolio/).
 #
 # Vars no secretas (editar acá):
 #   GITHUB_REPO  = "felipehiguera/felipehiguera.github.io"
