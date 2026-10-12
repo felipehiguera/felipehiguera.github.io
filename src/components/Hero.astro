@@ -1,0 +1,232 @@
+---
+/**
+ * Hero de la home.
+ *
+ * Movimiento 100% CSS: un plano milimetrado que se desplaza muy lento y una
+ * línea técnica que se "traza" al cargar. Sin JS, sin librerías.
+ *
+ * Accesibilidad: el SVG es decorativo (`aria-hidden`), y `global.css` anula
+ * animaciones y transiciones bajo `prefers-reduced-motion: reduce`.
+ */
+---
+
+<section class="hero" aria-labelledby="hero-titulo">
+  <div class="hero-inner">
+    <div class="hero-contenido">
+      <p class="hero-eyebrow tech">
+        Portafolio — Dibujo técnico · CAD/CAM · Soporte IT
+      </p>
+      <h1 id="hero-titulo" class="hero-titulo">Felipe Higuera</h1>
+      <p class="hero-bajada">
+        Soy diseñador industrial titulado de la Universidad de Chile (2025), de
+        Maipú, Santiago. Trabajo en dibujo técnico industrial y modelado
+        CAD/CAM —planimetría normada, vistas y despiece, archivos de corte
+        CNC— y en soporte de equipos informáticos N1/N2.
+      </p>
+    </div>
+
+    <div class="hero-plano" aria-hidden="true">
+      <svg viewBox="0 0 400 250" fill="none" focusable="false">
+        <!-- contorno de la placa -->
+        <rect class="traza traza-1" pathLength="1" x="95" y="55" width="210" height="150" rx="3" />
+        <!-- taladro y su contra taladro -->
+        <circle class="traza traza-2" pathLength="1" cx="200" cy="130" r="40" />
+        <circle class="traza traza-3" pathLength="1" cx="200" cy="130" r="14" />
+        <!-- ejes -->
+        <line class="eje traza-4" pathLength="1" x1="58" y1="130" x2="342" y2="130" />
+        <line class="eje traza-5" pathLength="1" x1="200" y1="26" x2="200" y2="234" />
+        <!-- cota -->
+        <line class="traza traza-6" pathLength="1" x1="95" y1="225" x2="305" y2="225" />
+        <line class="fina traza-7" pathLength="1" x1="95" y1="205" x2="95" y2="234" />
+        <line class="fina traza-7" pathLength="1" x1="305" y1="205" x2="305" y2="234" />
+        <polygon class="traza traza-8" points="95,225 104,221.5 104,228.5" />
+        <polygon class="traza traza-8" points="305,225 296,221.5 296,228.5" />
+        <text class="cota" x="200" y="217" text-anchor="middle">⌀ 160</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 2.5rem 1rem 2rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Retícula milimetrada de fondo, con desvanecido en los bordes. */
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.55;
+    -webkit-mask-image: radial-gradient(
+      120% 100% at 50% 40%,
+      #000 30%,
+      transparent 100%
+    );
+    mask-image: radial-gradient(120% 100% at 50% 40%, #000 30%, transparent 100%);
+    animation: milimetrado 24s linear infinite;
+  }
+
+  /* Misma medida de contenido que el resto del sitio; la banda y la retícula
+     sí van a sangre completa. */
+  .hero-inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 56rem;
+  }
+
+  .hero-contenido {
+    position: relative;
+    max-width: 36rem;
+  }
+
+  .hero-eyebrow {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+  }
+
+  .hero-titulo {
+    margin-top: 0.5rem;
+    font-size: clamp(1.875rem, 8vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-bajada {
+    margin-top: 1rem;
+    max-width: 34rem;
+  }
+
+  .hero-plano {
+    position: relative;
+    margin: 0 -1rem -2rem;
+    opacity: 0.85;
+  }
+
+  .hero-plano svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 12rem;
+  }
+
+  /* Trazo del plano: `pathLength="1"` normaliza cada figura, así que un solo
+     par de valores sirve para líneas, rectángulos, círculos y polígonos. */
+  .traza,
+  .fina {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: traza 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .traza {
+    stroke: var(--accent);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    fill: none;
+  }
+
+  /* Los ejes son raya-punto, así que no se "trazan": se aparecen. */
+  .eje {
+    stroke: var(--muted);
+    stroke-width: 0.75;
+    stroke-dasharray: 0.02 0.012 0.002 0.012;
+    animation: aparecer 0.6s ease forwards;
+  }
+
+  .fina {
+    stroke: var(--muted);
+    stroke-width: 0.75;
+    fill: none;
+  }
+
+  .cota {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    fill: var(--muted);
+    animation: aparecer 0.6s ease 2.1s both;
+  }
+
+  .traza-1 { animation-delay: 0.05s; }
+  .traza-2 { animation-delay: 0.35s; }
+  .traza-3 { animation-delay: 0.5s; }
+  .traza-4 { animation-delay: 0.7s; }
+  .traza-5 { animation-delay: 0.85s; }
+  .traza-6 { animation-delay: 1.05s; }
+  .traza-7 { animation-delay: 1.2s; }
+  .traza-8 { animation-delay: 1.35s; }
+
+  /* Entrada escalonada del texto. */
+  .hero-eyebrow,
+  .hero-titulo,
+  .hero-bajada {
+    animation: entrada 0.65s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+
+  .hero-titulo { animation-delay: 0.1s; }
+  .hero-bajada { animation-delay: 0.22s; }
+
+  @keyframes traza {
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes entrada {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes milimetrado {
+    from { background-position: 0 0; }
+    to { background-position: 24px 24px; }
+  }
+
+  @media (min-width: 768px) {
+    .hero {
+      padding: 4rem 2rem 3.5rem;
+    }
+
+    .hero-inner {
+      flex-direction: row;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .hero-contenido {
+      flex: 1 1 60%;
+    }
+
+    .hero-plano {
+      flex: 1 1 40%;
+      margin: 0;
+    }
+
+    .hero-plano svg {
+      max-height: 15rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .hero {
+      padding: 5rem 2rem 4.5rem;
+    }
+  }
+</style>

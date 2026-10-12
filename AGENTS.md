@@ -33,7 +33,7 @@ Construir un portafolio web estático, rápido y sobrio para un perfil de **Dibu
 - Páginas estáticas reales (una por caso), así que no se necesita hack de SPA ni `404.html` para routing.
 
 ## Estructura de páginas
-1. **Home (`/`)**: quién es, qué hace (1 párrafo), 3 proyectos destacados, CV y contacto. Sin hero animado.
+1. **Home (`/`)**: hero con quién es y qué hace (1 párrafo), carrusel de 3 proyectos destacados y acceso al CV. El contacto vive solo en el footer, no en el cuerpo de las páginas.
 2. **Proyectos (`/proyectos`)**: grilla de casos de estudio.
 3. **Caso de estudio (`/proyectos/[slug]`)**: plantilla fija (abajo).
 4. **Soporte IT (`/soporte-it`)**: sección corta con 2–3 casos antes/después.
@@ -113,7 +113,14 @@ Los textos e imágenes reales los aporta el usuario. **No inventar proyectos, m�
 - **Tema:** claro/oscuro con `prefers-color-scheme` mediante variables CSS.
 
 ## Diseño
-Sobrio, técnico y legible. Mucho espacio en blanco, tipografía clara (una sola familia + monoespaciada para datos técnicos), un solo color de acento. Los planos son los protagonistas. Sin carruseles, sin animaciones decorativas, sin hero a pantalla completa.
+Sobrio, técnico y legible. Mucho espacio en blanco, tipografía clara (una sola familia + monoespaciada para datos técnicos), un solo color de acento. Los planos son los protagonistas. Sin hero a pantalla completa.
+
+Sobre movimiento: se permite, con límite. La regla original era "sin carruseles, sin animaciones decorativas" sin justificar; se relajó porque el sitio se veía plano en mobile. Lo que sigue manda:
+
+- El movimiento es **ilustrativo, no descartable**: el hero traza un plano y el carrusel muestra proyectos.
+- **Nada de animación infinita que llame la atención** ni de movimiento al hacer scroll.
+- Todo lo animado se apaga bajo `prefers-reduced-motion: reduce`. En el carrusel eso incluye el autoplay: si el usuario lo pidió, la rotación automática no corre.
+- El contenido autoplayable debe tener pausa por hover, por foco y con la pestaña oculta.
 
 ## Convenciones de trabajo para el agente
 - Antes de escribir código, proponer un plan corto de archivos a crear y esperar confirmación.

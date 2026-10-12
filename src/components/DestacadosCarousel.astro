@@ -1,0 +1,280 @@
+---
+/**
+ * Carrusel de proyectos destacados para la home.
+ *
+ * Usa Embla Carousel: swipe táctil en mobile, teclado y autoplay con pausa.
+ * Mobile first: 1 slide en móvil, 2 desde `sm`, 3 desde `lg`.
+ *
+ * Accesibilidad:
+ * - `aria-roledescription="carrusel"` + slides rotuladas "N de M".
+ * - Controles con etiqueta y 44px de área táctil.
+ * - Sin `aria-live`: el autoplay no debe interrumpir al lector de pantalla.
+ * - Con `prefers-reduced-motion: reduce` el autoplay no arranca.
+ */
+import type { CollectionEntry } from "astro:content";
+import ProjectCard from "./ProjectCard.astro";
+
+interface Props {
+  proyectos: CollectionEntry<"proyectos">[];
+}
+
+const { proyectos } = Astro.props;
+const total = proyectos.length;
+---
+
+{
+  total > 0 && (
+    <div
+      class="carrusel"
+      data-destacados
+      role="group"
+      aria-roledescription="carrusel"
+      aria-label="Proyectos destacados"
+    >
+      <div class="embla" data-destacados-viewport>
+        <div class="embla__container">
+          {proyectos.map((proyecto, i) => (
+            <div
+              class="embla__slide"
+              role="group"
+              aria-roledescription="diapositiva"
+              aria-label={`${i + 1} de ${total}`}
+            >
+              <ProjectCard proyecto={proyecto} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {total > 1 && (
+        <div class="carrusel-controles">
+          <button
+            type="button"
+            class="control tech"
+            data-destacados-prev
+            aria-label="Proyecto anterior"
+          >
+            ←
+          </button>
+
+          <ul class="puntos">
+            {proyectos.map((proyecto, i) => (
+              <li>
+                <button
+                  type="button"
+                  class="punto"
+                  data-destacados-dot={i}
+                  aria-label={`Ir al proyecto ${i + 1}: ${proyecto.data.title}`}
+                />
+              </li>
+            ))}
+          </ul>
+
+          <button
+            type="button"
+            class="control tech"
+            data-destacados-next
+            aria-label="Proyecto siguiente"
+          >
+            →
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+<style>
+  .carrusel {
+    position: relative;
+  }
+
+  .embla {
+    overflow: hidden;
+  }
+
+  .embla__container {
+    display: flex;
+    margin-left: -1rem;
+    /* Permite scroll vertical en mobile sin perder el swipe horizontal. */
+    touch-action: pan-y;
+    transition: transform 0.55s cubic-bezier(0.2, 0.7, 0.3, 1);
+  }
+
+  .embla__slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    padding-left: 1rem;
+  }
+
+  /* `:global` porque el <article> lo renderiza ProjectCard, que tiene su
+     propio ámbito de estilos. */
+  .embla__slide > :global(article) {
+    height: 100%;
+  }
+
+  .carrusel-controles {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+  }
+
+  .control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--fg);
+    cursor: pointer;
+  }
+
+  .control:hover:not(:disabled) {
+    border-color: var(--accent);
+  }
+
+  .control:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+
+  .puntos {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .punto {
+    display: block;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+
+  .punto::after {
+    content: "";
+    display: block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin: 0 auto;
+    border-radius: 999px;
+    background: var(--line);
+    transition: background-color 0.2s ease;
+  }
+
+  .punto:hover::after {
+    background: var(--muted);
+  }
+
+  .punto[aria-current="true"]::after {
+    background: var(--accent);
+  }
+
+  @media (min-width: 640px) {
+    .embla__slide {
+      flex-basis: 50%;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .embla__slide {
+      flex-basis: 33.3333%;
+    }
+  }
+</style>
+
+<script>
+  import EmblaCarousel from "embla-carousel";
+  import Autoplay from "embla-carousel-autoplay";
+
+  const DELAY = 6000;
+  const consultaMovimiento = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  );
+
+  document
+    .querySelectorAll<HTMLElement>("[data-destacados]")
+    .forEach((raiz) => {
+      const viewport = raiz.querySelector<HTMLElement>(
+        "[data-destacados-viewport]",
+      );
+      const prev = raiz.querySelector<HTMLButtonElement>(
+        "[data-destacados-prev]",
+      );
+      const next = raiz.querySelector<HTMLButtonElement>(
+        "[data-destacados-next]",
+      );
+
+      if (!viewport) return;
+
+      const dots = Array.from(
+        raiz.querySelectorAll<HTMLButtonElement>("[data-destacados-dot]"),
+      );
+
+      // Con movimiento reducido el carrusel queda quieto: solo se mueve con
+      // los controles. Es justo el caso para el que existe esa preferencia.
+      const autoPlay = Autoplay({
+        delay: DELAY,
+        playOnInit: !consultaMovimiento.matches,
+        stopOnInteraction: false,
+        stopOnMouseEnter: true,
+        stopOnFocusIn: true,
+      });
+
+      const embla = EmblaCarousel(
+        viewport,
+        {
+          loop: true,
+          align: "start",
+          slidesToScroll: 1,
+          containScroll: "trimSnaps",
+        },
+        [autoPlay],
+      );
+
+      const pintar = () => {
+        const actual = embla.selectedScrollSnap();
+
+        if (prev) prev.disabled = !embla.canScrollPrev();
+        if (next) next.disabled = !embla.canScrollNext();
+
+        dots.forEach((dot, i) => {
+          if (i === actual) {
+            dot.setAttribute("aria-current", "true");
+          } else {
+            dot.removeAttribute("aria-current");
+          }
+        });
+      };
+
+      embla.on("select", pintar);
+      embla.on("reInit", pintar);
+      pintar();
+
+      prev?.addEventListener("click", () => embla.scrollPrev());
+      next?.addEventListener("click", () => embla.scrollNext());
+
+      dots.forEach((dot, i) => {
+        dot.addEventListener("click", () => embla.scrollTo(i));
+      });
+
+      // Si la preferencia cambia en caliente, seguimos al usuario.
+      consultaMovimiento.addEventListener("change", (evento) => {
+        if (evento.matches) autoPlay.stop();
+        else autoPlay.play();
+      });
+
+      // No gastar ciclos avanzando en una pestaña que nadie mira.
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) autoPlay.stop();
+        else autoPlay.play();
+      });
+    });
+</script>

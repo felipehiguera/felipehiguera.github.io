@@ -2,7 +2,8 @@
 import { getCollection } from "astro:content";
 import { existsSync } from "node:fs";
 import Base from "../layouts/Base.astro";
-import ProjectCard from "../components/ProjectCard.astro";
+import Hero from "../components/Hero.astro";
+import DestacadosCarousel from "../components/DestacadosCarousel.astro";
 
 const destacados = (await getCollection("proyectos", ({ data }) => data.featured))
   .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())
@@ -16,67 +17,38 @@ const cvExiste = existsSync("public/cv/CV-Felipe-Higuera.pdf");
   title="Felipe Higuera — Dibujo técnico industrial, CAD/CAM y Soporte IT"
   description="Portafolio de Felipe Higuera: dibujo técnico industrial, modelado CAD/CAM y soporte IT. Planos, modelos y proceso."
 >
-  <div class="mx-auto max-w-4xl px-4 py-10">
-    <p class="tech text-xs uppercase tracking-widest" style="color: var(--muted)">
-      Portafolio — Dibujo técnico · CAD/CAM · Soporte IT
-    </p>
-    <h1 class="mt-2 text-3xl font-bold">Felipe Higuera</h1>
-    <p class="mt-4 max-w-prose">
-      Soy diseñador industrial titulado de la Universidad de Chile (2025), de
-      Maipú, Santiago. Trabajo en dibujo técnico industrial y modelado
-      CAD/CAM —planimetría normada, vistas y despiece, archivos de corte
-      CNC— y en soporte de equipos informáticos N1/N2.
-    </p>
+  <Hero />
 
-    <section aria-labelledby="destacados" class="mt-12">
-      <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="destacados" class="text-2xl font-bold">Proyectos destacados</h2>
-        <a href={`${base}proyectos`}>Ver todos →</a>
-      </div>
-      <ul class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {
-          destacados.map((proyecto) => (
-            <li>
-              <ProjectCard proyecto={proyecto} />
-            </li>
-          ))
-        }
-      </ul>
-    </section>
+  <section aria-labelledby="destacados" class="mx-auto max-w-4xl px-4 py-10">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h2 id="destacados" class="text-2xl font-bold">Proyectos destacados</h2>
+      <a href={`${base}proyectos`}>Ver todos →</a>
+    </div>
+    <div class="mt-6">
+      <DestacadosCarousel proyectos={destacados} />
+    </div>
+  </section>
 
-    <section aria-labelledby="cv-contacto" class="mt-12">
-      <h2 id="cv-contacto" class="text-2xl font-bold">CV y contacto</h2>
-      <p class="mt-2 max-w-prose" style="color: var(--muted)">
-        Resumen de experiencia, formación y habilidades, con descarga en PDF.
-      </p>
-      <p class="mt-4 flex flex-wrap gap-x-6 gap-y-2">
-        <a href={`${base}cv`}>Ver CV →</a>
-        {
-          cvExiste ? (
-            <a href={`${base}cv/CV-Felipe-Higuera.pdf`} download>
-              Descargar PDF
-            </a>
-          ) : (
-            <span class="tech text-sm" style="color: var(--muted)">
-              TODO: PDF del CV pendiente (public/cv/CV-Felipe-Higuera.pdf)
-            </span>
-          )
-        }
-      </p>
-      <ul class="mt-4 flex flex-wrap gap-x-6 gap-y-1">
-        <li>
-          <a href="mailto:felipehiguera@outlook.cl">felipehiguera@outlook.cl</a>
-        </li>
-        <li>
-          <a
-            href="https://www.linkedin.com/in/felipe-h-321316284/"
-            target="_blank"
-            rel="me noopener"
-          >
-            LinkedIn
+  <section aria-labelledby="cv" class="mx-auto max-w-4xl px-4 pb-14">
+    <h2 id="cv" class="text-2xl font-bold">Currículum</h2>
+    <p class="mt-2 max-w-prose" style="color: var(--muted)">
+      Resumen de experiencia, formación y habilidades, con descarga en PDF.
+    </p>
+    <p class="mt-4">
+      <a href={`${base}cv`}>Ver CV completo →</a>
+    </p>
+    <p class="mt-2">
+      {
+        cvExiste ? (
+          <a href={`${base}cv/CV-Felipe-Higuera.pdf`} download>
+            Descargar PDF
           </a>
-        </li>
-      </ul>
-    </section>
-  </div>
+        ) : (
+          <span class="tech text-sm" style="color: var(--muted)">
+            TODO: PDF del CV pendiente (public/cv/CV-Felipe-Higuera.pdf)
+          </span>
+        )
+      }
+    </p>
+  </section>
 </Base>
