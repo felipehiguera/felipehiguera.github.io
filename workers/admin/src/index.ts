@@ -206,6 +206,7 @@ export default {
         `/contents/${RUTAS.secciones}`,
       );
       return responder({
+        ok: true,
         proyectos: (r.datos ?? [])
           .filter((a) => a.name.endsWith(".mdx"))
           .map((a) => ({ nombre: a.name, path: a.path, sha: a.sha })),
@@ -223,6 +224,7 @@ export default {
       );
       if (!r.ok) return responder({ error: r.detalle }, r.status);
       return responder({
+        ok: true,
         sha: r.datos?.sha,
         contenido: b64ATexto(String(r.datos?.content)),
       });
