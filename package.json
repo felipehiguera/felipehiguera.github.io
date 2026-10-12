@@ -23,5 +23,8 @@
     "embla-carousel-autoplay": "^8.6.0",
     "tailwindcss": "^4.3.3",
     "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4.149.0"
   }
 }

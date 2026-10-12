@@ -5,9 +5,8 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
-# Sin permisos de Pages: el deploy lo hace Wrangler con un API token
-# (secret CLOUDFLARE_API_TOKEN) contra la cuenta (secret
-# CLOUDFLARE_ACCOUNT_ID). El token necesita permiso Pages:Edit.
+# El deploy lo hace Wrangler con un API token (secret CLOUDFLARE_API_TOKEN,
+# permiso Pages:Edit) contra la cuenta (secret CLOUDFLARE_ACCOUNT_ID).
 permissions:
   contents: read
 
@@ -31,14 +30,22 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Revisar secrets
+        # Falla rápido y con mensaje legible si falta algo, en vez del error
+        # genérico de Wrangler. No imprime valores.
+        run: |
+          test -n "${{ secrets.CLOUDFLARE_API_TOKEN }}" || { echo "::error::Falta el secret CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" || { echo "::error::Falta el secret CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+
       - name: Build para Pages
         # Compila Astro y reordena dist/: landing en raíz,
         # portfolio en /portafolio/ (ver scripts/assemble-dist.mjs).
         run: npm run build:pages
 
       - name: Deploy a Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=fhiguera --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # Wrangler como devDependency: misma versión local y en CI.
+        # Crea el proyecto `fhiguera` solo si no existe.
+        run: npx --no-install wrangler pages deploy dist --project-name=fhiguera --commit-dirty=true
