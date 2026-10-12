@@ -14,8 +14,8 @@ Construir un portafolio web estático, rápido y sobrio para un perfil de **Dibu
 - **Skills:** AutoCAD, Fusion 360 / Inventor, Solid Edge, Rhinoceros 3D · planimetría normada (ISO/ANSI), vistas explotadas, metrología, tolerancias · soporte N1/N2, redes, RDP, ingeniería de prompts · inglés B1/B2 (lectura técnica).
 - **Idioma del sitio:** español (Chile). Dejar la estructura lista para i18n a inglés más adelante, sin implementarlo ahora.
 
-> No incluir RUT ni teléfono en el sitio. Contacto público: correo y LinkedIn.
-> Correo: felipehiguera@outlook.cl · LinkedIn: https://www.linkedin.com/in/felipe-h-321316284/
+> No incluir RUT en el sitio. **El teléfono sí va, por decisión explícita del usuario** (la regla original lo prohibía): aparece solo en el footer, nunca en el cuerpo de las páginas.
+> Contacto público: +56 9 3111 0973 · felipehiguera@outlook.cl · LinkedIn: https://www.linkedin.com/in/felipe-h-321316284/
 
 ## Stack (decidido)
 - **Astro** (última versión estable), salida 100% estática.
