@@ -1,0 +1,112 @@
+---
+import { Image } from "astro:assets";
+import { getCollection, render } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import SpecList from "../../components/SpecList.astro";
+import { etiquetaCategoria, fechaCorta, slugDe } from "../../utils/proyectos";
+
+export async function getStaticPaths() {
+  const proyectos = await getCollection("proyectos");
+  return proyectos.map((entry) => ({
+    params: { slug: slugDe(entry.id) },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { data } = entry;
+const { Content } = await render(entry);
+
+const entregable: string[] = [
+  ...(data.model ? [`Modelo 3D: ${data.model}`] : []),
+  ...data.planos.map((p) => `Plano: ${p.title}`),
+];
+const base = import.meta.env.BASE_URL;
+---
+
+<Base title={`${data.title} — Proyectos — Felipe Higuera`} description={data.summary}>
+  <div class="mx-auto max-w-4xl px-4 py-10">
+    <p>
+      <a href={`${base}proyectos`}>← Proyectos</a>
+    </p>
+    {
+      data.confidential && (
+        <p role="note" class="mt-4 border p-4 text-sm" style="border-color: var(--line)">
+          Aviso: material confidencial redactado. Se muestra solo una versión
+          descriptiva, sin planos ni datos sensibles.
+        </p>
+      )
+    }
+    <p class="tech mt-6 text-xs uppercase tracking-widest" style="color: var(--muted)">
+      {etiquetaCategoria(data.category)} · {fechaCorta(data.date)}
+    </p>
+    <h1 class="mt-2 text-3xl font-bold">{data.title}</h1>
+    <p class="mt-2 max-w-prose text-lg">{data.summary}</p>
+
+    <div class="mt-6 border-y py-4" style="border-color: var(--line)">
+      <SpecList
+        software={data.software}
+        normativa={data.normativa}
+        entregable={entregable}
+      />
+    </div>
+
+    {
+      data.cover ? (
+        <Image
+          src={data.cover}
+          alt={`Portada del proyecto: ${data.title}`}
+          width={1200}
+          format="webp"
+        />
+      ) : (
+        <p class="tech mt-6 border p-4 text-sm" style="border-color: var(--line); color: var(--muted)">
+          TODO: imagen de portada pendiente.
+        </p>
+      )
+    }
+
+    {
+      data.model ? (
+        <p class="tech mt-6 text-sm" style="color: var(--muted)">
+          Modelo 3D: {data.model} (visor en Etapa 4)
+        </p>
+      ) : (
+        <p class="tech mt-6 border p-4 text-sm" style="border-color: var(--line); color: var(--muted)">
+          TODO: visor 3D pendiente (componente ModelViewer, Etapa 4).
+        </p>
+      )
+    }
+
+    {
+      data.planos.length > 0 ? (
+        <ul class="mt-6 grid gap-4">
+          {data.planos.map((plano) => (
+            <li>
+              <a href={`${base}${plano.pdf.replace(/^\//, "")}`}>{plano.title} (PDF)</a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="tech mt-6 border p-4 text-sm" style="border-color: var(--line); color: var(--muted)">
+          TODO: planos embebidos pendientes (componente PlanoEmbed, Etapa 4).
+        </p>
+      )
+    }
+
+    <div class="prose mt-8 max-w-prose">
+      <Content />
+    </div>
+  </div>
+</Base>
+
+<style>
+  .prose :global(h2) {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-top: 2rem;
+  }
+  .prose :global(p) {
+    margin-top: 0.75rem;
+  }
+</style>

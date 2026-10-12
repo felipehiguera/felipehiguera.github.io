@@ -1,0 +1,30 @@
+---
+interface Props {
+  software: string[];
+  normativa: string[];
+  entregable: string[];
+}
+
+const { software, normativa, entregable } = Astro.props;
+---
+
+<dl class="tech grid gap-4 text-sm sm:grid-cols-3">
+  <div>
+    <dt class="font-semibold" style="color: var(--fg)">Software</dt>
+    <dd class="mt-1" style="color: var(--muted)">
+      {software.length > 0 ? software.join(" · ") : "TODO: por confirmar"}
+    </dd>
+  </div>
+  <div>
+    <dt class="font-semibold" style="color: var(--fg)">Normativa</dt>
+    <dd class="mt-1" style="color: var(--muted)">
+      {normativa.length > 0 ? normativa.join(" · ") : "TODO: por confirmar"}
+    </dd>
+  </div>
+  <div>
+    <dt class="font-semibold" style="color: var(--fg)">Entregable</dt>
+    <dd class="mt-1" style="color: var(--muted)">
+      {entregable.length > 0 ? entregable.join(" · ") : "TODO: por definir"}
+    </dd>
+  </div>
+</dl>

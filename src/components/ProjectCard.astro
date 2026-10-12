@@ -1,0 +1,38 @@
+---
+import { Image } from "astro:assets";
+import type { CollectionEntry } from "astro:content";
+import { etiquetaCategoria, fechaCorta, slugDe } from "../utils/proyectos";
+
+interface Props {
+  proyecto: CollectionEntry<"proyectos">;
+}
+
+const { proyecto } = Astro.props;
+const { data } = proyecto;
+const url = `${import.meta.env.BASE_URL}proyectos/${slugDe(proyecto.id)}`;
+---
+
+<article class="border p-4" style="border-color: var(--line)">
+  {
+    data.cover ? (
+      <Image
+        src={data.cover}
+        alt={`Portada del proyecto: ${data.title}`}
+        width={800}
+        format="webp"
+        loading="lazy"
+      />
+    ) : (
+      <p class="tech border p-4 text-xs" style="border-color: var(--line); color: var(--muted)">
+        TODO: imagen de portada pendiente
+      </p>
+    )
+  }
+  <p class="tech mt-3 text-xs" style="color: var(--muted)">
+    {etiquetaCategoria(data.category)} · {fechaCorta(data.date)}
+  </p>
+  <h2 class="mt-1 text-xl font-semibold">
+    <a href={url}>{data.title}</a>
+  </h2>
+  <p class="mt-2">{data.summary}</p>
+</article>
