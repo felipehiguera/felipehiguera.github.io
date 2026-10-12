@@ -26,5 +26,8 @@ pnpm-debug.log*
 supabase/.temp
 supabase/.branches
 
+# Skills/agents locales: entorno de desarrollo, no contenido del sitio
+.agents/
+
 # jetbrains setting folder
 .idea/
