@@ -1,0 +1,86 @@
+---
+interface Props {
+  /** Ruta del .glb relativa a `public`, ej. "models/pieza.glb". */
+  src: string;
+  /** Descripción del modelo (atributo `alt` del visor). */
+  alt: string;
+  /** Título visible en el pie y en el enlace de descarga. */
+  title: string;
+}
+
+const { src, alt, title } = Astro.props;
+const url = `${import.meta.env.BASE_URL}${src.replace(/^\//, "")}`;
+---
+
+<figure
+  data-model-viewer
+  data-src={url}
+  data-alt={alt}
+  class="overflow-x-auto border p-2"
+  style="border-color: var(--line)"
+>
+  <div
+    data-mv-slot
+    class="tech flex items-center justify-center p-8 text-center text-sm"
+    style="color: var(--muted); background: var(--code-bg); min-height: 320px;"
+  >
+    Cargando modelo 3D…
+  </div>
+  <figcaption class="mt-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">
+    <span>{title}</span>
+    <a class="tech text-xs" href={url} download>
+      Descargar .glb
+    </a>
+  </figcaption>
+  <noscript>
+    <p class="mt-2 text-sm">
+      Activa JavaScript para interactuar con el modelo 3D.
+    </p>
+  </noscript>
+</figure>
+
+<script type="module">
+  const figures = document.querySelectorAll("[data-model-viewer]");
+
+  async function mount(figure) {
+    if (figure.dataset.mounted === "true") return;
+    figure.dataset.mounted = "true";
+    await import("@google/model-viewer");
+    const slot = figure.querySelector("[data-mv-slot]");
+    const viewer = document.createElement("model-viewer");
+    viewer.setAttribute("src", figure.dataset.src ?? "");
+    viewer.setAttribute("alt", figure.dataset.alt ?? "");
+    viewer.setAttribute("camera-controls", "");
+    viewer.setAttribute("loading", "lazy");
+    viewer.setAttribute("ar", "");
+    viewer.setAttribute("ar-modes", "webxr scene-viewer quick-look");
+    if (slot) slot.replaceWith(viewer);
+  }
+
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          io.unobserve(entry.target);
+          void mount(entry.target);
+        }
+      },
+      { rootMargin: "300px" },
+    );
+    figures.forEach((figure) => io.observe(figure));
+  } else {
+    figures.forEach((figure) => {
+      void mount(figure);
+    });
+  }
+</script>
+
+<style>
+  figure[data-model-viewer] model-viewer {
+    width: 100%;
+    height: min(60vh, 480px);
+    min-height: 320px;
+    background-color: var(--code-bg);
+  }
+</style>

@@ -2,6 +2,8 @@
 import { Image } from "astro:assets";
 import { getCollection, render } from "astro:content";
 import Base from "../../layouts/Base.astro";
+import ModelViewer from "../../components/ModelViewer.astro";
+import PlanoEmbed from "../../components/PlanoEmbed.astro";
 import SpecList from "../../components/SpecList.astro";
 import { etiquetaCategoria, fechaCorta, slugDe } from "../../utils/proyectos";
 
@@ -68,28 +70,34 @@ const base = import.meta.env.BASE_URL;
 
     {
       data.model ? (
-        <p class="tech mt-6 text-sm" style="color: var(--muted)">
-          Modelo 3D: {data.model} (visor en Etapa 4)
-        </p>
+        <div class="mt-6">
+          <ModelViewer
+            src={data.model}
+            title={`Modelo 3D — ${data.title}`}
+            alt={`Modelo 3D del proyecto: ${data.title}`}
+          />
+        </div>
       ) : (
         <p class="tech mt-6 border p-4 text-sm" style="border-color: var(--line); color: var(--muted)">
-          TODO: visor 3D pendiente (componente ModelViewer, Etapa 4).
+          TODO: visor 3D pendiente (dejar el .glb en public/models/ y declarar
+          model: "models/archivo.glb" en el frontmatter).
         </p>
       )
     }
 
     {
       data.planos.length > 0 ? (
-        <ul class="mt-6 grid gap-4">
+        <ul class="mt-6 grid gap-6">
           {data.planos.map((plano) => (
             <li>
-              <a href={`${base}${plano.pdf.replace(/^\//, "")}`}>{plano.title} (PDF)</a>
+              <PlanoEmbed title={plano.title} pdf={plano.pdf} thumb={plano.thumb} />
             </li>
           ))}
         </ul>
       ) : (
         <p class="tech mt-6 border p-4 text-sm" style="border-color: var(--line); color: var(--muted)">
-          TODO: planos embebidos pendientes (componente PlanoEmbed, Etapa 4).
+          TODO: planos embebidos pendientes (PDF en public/planos/ y miniatura en
+          src/assets/, declarados en planos: del frontmatter).
         </p>
       )
     }

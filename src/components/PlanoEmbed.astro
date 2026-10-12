@@ -1,0 +1,50 @@
+---
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+  /** Título del plano. */
+  title: string;
+  /** Ruta del PDF relativa a `public`, ej. "planos/lamina-01.pdf". */
+  pdf: string;
+  /** Miniatura optimizada (cuando exista el material real). */
+  thumb?: ImageMetadata;
+}
+
+const { title, pdf, thumb } = Astro.props;
+const pdfUrl = `${import.meta.env.BASE_URL}${pdf.replace(/^\//, "")}`;
+---
+
+<figure class="overflow-x-auto border p-2" style="border-color: var(--line)">
+  <a href={pdfUrl} target="_blank" rel="noopener" type="application/pdf">
+    {
+      thumb ? (
+        <Image
+          src={thumb}
+          alt={`Miniatura del plano: ${title}`}
+          width={1000}
+          format="webp"
+          loading="lazy"
+        />
+      ) : (
+        <span
+          class="tech block p-8 text-center text-sm"
+          style="color: var(--muted); background: var(--code-bg)"
+        >
+          TODO: miniatura pendiente — {title}
+        </span>
+      )
+    }
+  </a>
+  <figcaption class="mt-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">
+    <span>{title}</span>
+    <span class="tech flex gap-4 text-xs">
+      <a href={pdfUrl} target="_blank" rel="noopener" type="application/pdf">
+        Ver PDF
+      </a>
+      <a href={pdfUrl} download>
+        Descargar
+      </a>
+    </span>
+  </figcaption>
+</figure>
