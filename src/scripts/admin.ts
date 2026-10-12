@@ -73,8 +73,12 @@ const aviso = (mensaje: string, tipo: "ok" | "error" = "ok") => {
   const nodo = $("#aviso");
   nodo.textContent = mensaje;
   nodo.hidden = false;
+  // Los errores quedan pegados hasta el próximo intento: el mensaje dice por
+  // qué falló la escritura y 6 segundos no alcanzan ni para leerlo.
   nodo.style.color = tipo === "ok" ? "var(--accent-ink)" : "#b3261e";
-  window.setTimeout(() => (nodo.hidden = true), 6000);
+  nodo.style.border = tipo === "error" ? "1px solid #b3261e" : "1px solid transparent";
+  nodo.style.padding = tipo === "error" ? "0.5rem 0.75rem" : "0";
+  if (tipo === "ok") window.setTimeout(() => (nodo.hidden = true), 6000);
 };
 
 // ------------------------------------------------------- frontmatter (MDX)
