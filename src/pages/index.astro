@@ -1,6 +1,5 @@
 ---
 import { getCollection } from "astro:content";
-import { existsSync } from "node:fs";
 import Base from "../layouts/Base.astro";
 import Hero from "../components/Hero.astro";
 import DestacadosCarousel from "../components/DestacadosCarousel.astro";
@@ -10,7 +9,6 @@ const destacados = (await getCollection("proyectos", ({ data }) => data.featured
   .slice(0, 3);
 
 const base = import.meta.env.BASE_URL;
-const cvExiste = existsSync("public/cv/CV-Felipe-Higuera.pdf");
 ---
 
 <Base
@@ -32,23 +30,11 @@ const cvExiste = existsSync("public/cv/CV-Felipe-Higuera.pdf");
   <section aria-labelledby="cv" class="mx-auto max-w-4xl px-4 pb-14">
     <h2 id="cv" class="text-2xl font-bold">Currículum</h2>
     <p class="mt-2 max-w-prose" style="color: var(--muted)">
-      Resumen de experiencia, formación y habilidades, con descarga en PDF.
+      Resumen de experiencia, formación y habilidades, con la hoja completa en
+      PDF para descargar.
     </p>
     <p class="mt-4">
       <a href={`${base}cv`}>Ver CV completo →</a>
-    </p>
-    <p class="mt-2">
-      {
-        cvExiste ? (
-          <a href={`${base}cv/CV-Felipe-Higuera.pdf`} download>
-            Descargar PDF
-          </a>
-        ) : (
-          <span class="tech text-sm" style="color: var(--muted)">
-            TODO: PDF del CV pendiente (public/cv/CV-Felipe-Higuera.pdf)
-          </span>
-        )
-      }
     </p>
   </section>
 </Base>

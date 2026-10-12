@@ -1,0 +1,64 @@
+---
+/**
+ * Vista previa de la primera hoja del CV.
+ *
+ * La miniatura se renderiza desde `public/cv/CV-Felipe-Higuera.pdf`, que ya va
+ * sin RUT. Si se reemplaza el PDF hay que volver a renderizar la imagen, o la
+ * vista previa quedara desactualizada.
+ *
+ * Se muestra como imagen (no un <iframe> con el visor nativo) para no cargar
+ * los ~360 KB del PDF en la pagina y para que se vea bien en iOS, donde el PDF
+ * embebido se renderiza en miniatura.
+ */
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+  src: ImageMetadata;
+}
+
+const { src } = Astro.props;
+const pdf = `${import.meta.env.BASE_URL}cv/CV-Felipe-Higuera.pdf`;
+---
+
+<a class="preview" href={pdf} target="_blank" rel="noopener">
+  <Image
+    src={src}
+    alt="Primera hoja del currículum: nombre, datos de contacto, resumen profesional, experiencia laboral, educación y habilidades técnicas."
+    widths={[320, 480, 640]}
+    sizes="(min-width: 640px) 24rem, 88vw"
+    loading="lazy"
+    format="webp"
+  />
+  <span class="preview-pie tech">Abrir CV completo (PDF) →</span>
+</a>
+
+<style>
+  .preview {
+    display: block;
+    margin-top: 1.5rem;
+    max-width: 24rem;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    text-decoration: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .preview:hover {
+    border-color: var(--accent);
+  }
+
+  .preview :global(img) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .preview-pie {
+    display: block;
+    padding: 0.6rem 0.9rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.75rem;
+    color: var(--accent-ink);
+  }
+</style>
