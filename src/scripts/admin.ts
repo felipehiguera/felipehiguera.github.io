@@ -51,7 +51,11 @@ const el = <K extends keyof HTMLElementTagNameMap>(
   props: Partial<HTMLElementTagNameMap[K]> & { class?: string } = {},
   ...hijos: Array<Node | string>
 ): HTMLElementTagNameMap[K] => {
-  const nodo = Object.assign(document.createElement(tag), props);
+  // `class` no es asignable por propiedad en el DOM (es `className`):
+  // Object.assign lo ignoraría en silencio y el nodo quedaría sin clases.
+  const { class: clases, ...resto } = props;
+  const nodo = Object.assign(document.createElement(tag), resto);
+  if (clases) nodo.setAttribute("class", clases);
   for (const hijo of hijos) {
     nodo.append(hijo instanceof Node ? hijo : document.createTextNode(hijo));
   }
