@@ -121,14 +121,15 @@ const lista = (v: unknown) => (Array.isArray(v) ? v.map(String).join(", ") : "")
 
 // ------------------------------------------------------------ API (Worker)
 
-// Mismo origen: el navegador llama a /api/admin y Cloudflare lo deriva al
-// Worker. Sin CORS, sin claves públicas, sin login en el cliente.
+// Mismo origen y misma app de Access: el navegador llama a la API bajo
+// /portafolio/admin/api, ya con la sesión del admin. Sin CORS, sin claves
+// públicas, sin login en el cliente.
 
 async function llamar(
   accion: string,
   extra: Record<string, unknown> = {},
 ): Promise<Respuesta> {
-  const r = await fetch("/api/admin", {
+  const r = await fetch("/portafolio/admin/api", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ accion, ...extra }),

@@ -1,0 +1,18 @@
+# Worker del portfolio (SSR, con todo prerenderizado por ahora).
+#
+# Sirve www.fhiguera.fyi/portafolio/*. La raíz de www la sirve el landing
+# (Pages) y /portafolio/admin/api el worker admin (ruta más específica,
+# gana por precedencia).
+
+name = "portafolio-site"
+main = "@astrojs/cloudflare/entrypoints/server"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+[assets]
+binding = "ASSETS"
+directory = "./dist"
+
+[[routes]]
+pattern = "www.fhiguera.fyi/portafolio/*"
+zone_name = "fhiguera.fyi"

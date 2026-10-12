@@ -78,8 +78,39 @@ const current = normalize(Astro.url.pathname);
         }
       </ul>
     </nav>
+
+    {/*
+      Botón Admin: arranca oculto porque el sitio es estático y no sabe si hay
+      sesión. El script de abajo lo revela solo si Access deja pasar a /admin.
+      Sin sesión sigue oculto: no anuncia nada a nadie.
+    */}
+    <a
+      href={`${base}admin`}
+      id="admin-link"
+      class="admin-link"
+      hidden
+    >
+      Admin
+    </a>
   </div>
 </header>
+
+<script define:vars={{ adminUrl: `${base}admin/` }}>
+  (function () {
+    var link = document.getElementById("admin-link");
+    if (!link) return;
+    // Sin seguir redirects: sin sesión Access responde 302 (opaco), con
+    // sesión responde 200. Un solo GET a una página estática cacheada.
+    fetch(adminUrl, { redirect: "manual" }).then(
+      function (r) {
+        if (r.status === 200) link.hidden = false;
+      },
+      function () {
+        /* Sin red o sin acceso: el botón sigue oculto. */
+      },
+    );
+  })();
+</script>
 
 <style>
   .marca-icono {
@@ -112,5 +143,17 @@ const current = normalize(Astro.url.pathname);
     border-radius: 999px;
     background: currentColor;
     vertical-align: 0.125rem;
+  }
+
+  .admin-link {
+    border: 1px solid var(--line);
+    border-radius: 0.25rem;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+
+  .admin-link:hover {
+    border-color: var(--accent);
   }
 </style>

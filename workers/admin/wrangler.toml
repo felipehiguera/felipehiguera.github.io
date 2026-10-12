@@ -1,9 +1,10 @@
 # Worker admin: única puerta de escritura al repo.
 #
-# La ruta /api/* vive en el MISMO host que el portfolio
-# (www.fhiguera.fyi). Así no hay CORS ni claves públicas:
-# el navegador llama a /api/admin y Cloudflare lo deriva acá.
-# Todo lo demás lo sirve Pages (landing en /, portfolio en /portafolio/).
+# La API vive bajo /portafolio/admin/api, DENTRO de la app de Access del
+# admin. Así el navegador ya trae la sesión de esa app y el fetch no cruza
+# a otra app (eso mataba el request con "failed to fetch"). Mismo origen,
+# sin CORS ni claves públicas: Cloudflare deriva al Worker y le adjunta el
+# JWT en el header CF-Access-Jwt-Assertion.
 #
 # Vars no secretas (editar acá):
 #   GITHUB_REPO  = "felipehiguera/felipehiguera.github.io"
@@ -29,5 +30,5 @@ ACCESS_AUD = "82086987de48e659a9a08f64ccf534b0a35c4f8d51901bb731fb3569fbb4b76f,4
 BRANCH = "main"
 
 [[routes]]
-pattern = "www.fhiguera.fyi/api/*"
+pattern = "www.fhiguera.fyi/portafolio/admin/api"
 zone_name = "fhiguera.fyi"
