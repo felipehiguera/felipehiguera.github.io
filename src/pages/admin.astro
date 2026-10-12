@@ -1,0 +1,253 @@
+---
+import Base from "../layouts/Base.astro";
+
+/**
+ * Panel de administración.
+ *
+ * Estático como el resto del sitio: no hay servidor ni base de datos. El
+ * login es Supabase Auth y las escrituras van a una Edge Function que es la
+ * única que conoce el token de GitHub.
+ *
+ * Va con `noindex` y fuera del sitemap: no tiene nada que un buscador deba
+ * indexar.
+ */
+const base = import.meta.env.BASE_URL;
+---
+
+<Base
+  title="Administración"
+  description="Panel de administración del portafolio."
+  noindex
+>
+  <div class="mx-auto max-w-3xl px-4 py-10">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h1 class="text-2xl font-bold">Administración</h1>
+      <a href={base}>← Volver al sitio</a>
+    </div>
+
+    <p id="aviso" class="mt-4" role="status" hidden></p>
+
+    <section id="sin-config" hidden class="mt-8 border p-4">
+      <h2 class="text-lg font-semibold">Falta configuración</h2>
+      <p class="mt-2">
+        Esta página necesita las variables <code>PUBLIC_SUPABASE_URL</code> y
+        <code>PUBLIC_SUPABASE_ANON_KEY</code>. Copiá
+        <code>.env.example</code> a <code>.env</code>, completá los valores y
+        reconstruí el sitio.
+      </p>
+    </section>
+
+    <section id="login" hidden class="mt-8">
+      <form id="form-login" class="grid gap-3 border p-4">
+        <label class="grid gap-1">
+          <span class="text-sm font-semibold">Correo</span>
+          <input
+            type="email"
+            name="email"
+            required
+            autocomplete="username"
+            class="campo"
+          />
+        </label>
+        <label class="grid gap-1">
+          <span class="text-sm font-semibold">Contraseña</span>
+          <input
+            type="password"
+            name="password"
+            required
+            autocomplete="current-password"
+            class="campo"
+          />
+        </label>
+        <div class="flex flex-wrap gap-3">
+          <button id="entrar" type="submit" class="btn">Entrar</button>
+          <button id="google" type="button" class="btn">Continuar con Google</button>
+        </div>
+      </form>
+      <p class="tech mt-3 text-xs muted">
+        El acceso depende de que tu correo esté en la lista de administradores
+        del servidor. Tener una cuenta no basta.
+      </p>
+    </section>
+
+    <section id="panel" hidden class="mt-8">
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <p class="text-sm muted">
+          Sesión de <strong id="usuario"></strong>
+        </p>
+        <button id="salir" type="button" class="btn">Salir</button>
+      </div>
+
+      <div class="mt-8">
+        <h2 class="text-lg font-semibold">Secciones visibles</h2>
+        <p class="text-sm muted">
+          Apagan el link del menú y el módulo del home. La ruta directa sigue
+          respondiendo.
+        </p>
+        <div id="secciones" class="mt-3 grid gap-1"></div>
+      </div>
+
+      <div class="mt-8">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 class="text-lg font-semibold">Proyectos</h2>
+          <button id="nuevo-proyecto" type="button" class="btn">Nuevo proyecto</button>
+        </div>
+        <p class="tech mt-1 text-xs muted">
+          Guardar escribe en el repo y dispara el deploy: el sitio se actualiza
+          solo en ~1 minuto.
+        </p>
+        <ul id="lista" class="mt-3 grid gap-2"></ul>
+      </div>
+
+      <form id="editor" hidden class="mt-8 grid gap-3 border p-4">
+        <h2 id="editor-titulo" class="text-lg font-semibold">Nuevo proyecto</h2>
+        <p id="ruta" class="tech break-all text-xs muted"></p>
+        <p id="nuevo" hidden class="text-xs muted">
+          El nombre del archivo sale del título. Cambialo acá abajo antes de
+          guardar si quieres otro.
+        </p>
+
+        <label class="grid gap-1">
+          <span class="text-sm font-semibold">Título</span>
+          <input name="title" required class="campo" />
+        </label>
+
+        <label class="grid gap-1">
+          <span class="text-sm font-semibold">Resumen (1 o 2 líneas)</span>
+          <input name="summary" required class="campo" />
+        </label>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="grid gap-1">
+            <span class="text-sm font-semibold">Fecha</span>
+            <input type="date" name="date" required class="campo" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-sm font-semibold">Categoría</span>
+            <select name="category" class="campo">
+              <option value="dibujo-tecnico">Dibujo técnico</option>
+              <option value="cad-cam">CAD/CAM</option>
+              <option value="soporte-it">Soporte IT</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="grid gap-1">
+            <span class="text-sm font-semibold">Software (separado por coma)</span>
+            <input name="software" class="campo" placeholder="Solid Edge, AutoCAD" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-sm font-semibold">Normativa (separada por coma)</span>
+            <input name="normativa" class="campo" placeholder="ISO 128, ANSI Y14.5" />
+          </label>
+        </div>
+
+        <fieldset class="flex flex-wrap gap-4">
+          <label class="flex items-center gap-2">
+            <input type="checkbox" name="featured" />
+            <span class="text-sm">Destacado en el home</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" name="draft" />
+            <span class="text-sm">Borrador (oculto y sin ruta)</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input type="checkbox" name="confidential" />
+            <span class="text-sm">Confidencial</span>
+          </label>
+        </fieldset>
+
+        <label class="grid gap-1">
+          <span class="text-sm font-semibold">Contenido (Markdown)</span>
+          <textarea name="body" rows="16" class="campo tech"></textarea>
+        </label>
+
+        <div class="flex flex-wrap gap-3">
+          <button id="guardar" type="submit" class="btn">Guardar</button>
+          <button id="cancelar" type="button" class="btn">Cancelar</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .campo {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--fg);
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.25rem;
+    font: inherit;
+  }
+
+  .btn {
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--accent-ink);
+    padding: 0.45rem 0.9rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  .btn:hover {
+    border-color: var(--accent);
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .btn.peligro {
+    color: #b3261e;
+  }
+
+  .muted {
+    color: var(--muted);
+  }
+
+  .small {
+    font-size: 0.75rem;
+  }
+
+  .break-all {
+    overflow-wrap: anywhere;
+  }
+
+  .fila {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 1px solid var(--line);
+    padding: 0.6rem 0.8rem;
+  }
+
+  .fila.toggle {
+    justify-content: flex-start;
+    gap: 0.6rem;
+    cursor: pointer;
+  }
+
+  .fila-info {
+    display: grid;
+  }
+
+  .fila-nombre {
+    font-weight: 600;
+  }
+
+  .fila-acciones {
+    display: flex;
+    gap: 0.5rem;
+  }
+</style>
+
+<script>
+  import "../scripts/admin";
+</script>

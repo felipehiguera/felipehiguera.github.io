@@ -12,10 +12,18 @@ interface Props {
   publishedTime?: string;
   /** Sección editorial, para `article:section` (solo casos de estudio). */
   section?: string;
+  /** Emite `robots: noindex` (se usa en `/admin`). */
+  noindex?: boolean;
 }
 
-const { title, description, ogType = "website", publishedTime, section } =
-  Astro.props;
+const {
+  title,
+  description,
+  ogType = "website",
+  publishedTime,
+  section,
+  noindex = false,
+} = Astro.props;
 const base = import.meta.env.BASE_URL;
 const siteUrl = Astro.site?.toString().replace(/\/$/, "") ?? "";
 // En build estático `Astro.url.pathname` ya es la ruta "pretty" (con barra
@@ -55,6 +63,7 @@ const siteName = "Felipe Higuera";
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={pageUrl} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
 
     <meta property="og:site_name" content={siteName} />
     <meta property="og:title" content={title} />

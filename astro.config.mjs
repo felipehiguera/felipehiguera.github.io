@@ -15,5 +15,11 @@ export default defineConfig({
     plugins: [tailwindcss()]
   },
 
-  integrations: [sitemap(), mdx()]
+  integrations: [
+    // `/admin` no tiene nada que un buscador deba indexar.
+    sitemap({
+      filter: (page) => !page.includes("/admin"),
+    }),
+    mdx(),
+  ]
 });
