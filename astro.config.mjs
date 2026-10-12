@@ -8,9 +8,9 @@ import mdx from '@astrojs/mdx';
 
 // https://astro.build/config
 export default defineConfig({
-  // Sitio de usuario GitHub Pages: https://snozzono.github.io
+  // Sitio de usuario GitHub Pages: https://felipehiguera.github.io
   // Base "/" (por defecto, no configurar `base`).
-  site: "https://snozzono.github.io",
+  site: "https://felipehiguera.github.io",
   vite: {
     plugins: [tailwindcss()]
   },
