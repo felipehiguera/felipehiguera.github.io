@@ -1,18 +1,12 @@
-﻿import type { SupabaseClient } from "@supabase/supabase-js";
-import { parse, stringify } from "yaml";
-import {
-  anonKey,
-  endpointAdmin,
-  hayConfig,
-  supabase as crearSupabase,
-} from "../db/supabase";
+﻿import { parse, stringify } from "yaml";
 
 /**
  * Lógica del panel de administración.
  *
- * No habla nunca con la API de GitHub: todas las escrituras pasan por la Edge
- * Function de Supabase, que es la única que tiene el token. Esta página solo
- * maneja sesión y formularios.
+ * No habla nunca con la API de GitHub: todas las escrituras pasan por el
+ * Worker `/api/admin`, que es el único que tiene el token. La autenticación
+ * la hace Cloudflare Access antes de que esta página cargue, así que acá no
+ * hay login: si ves esto, ya pasaste.
  */
 
 const DIR_PROYECTOS = "src/content/proyectos/";
@@ -125,38 +119,29 @@ function unir(fm: Frontmatter, cuerpo: string): string {
 
 const lista = (v: unknown) => (Array.isArray(v) ? v.map(String).join(", ") : "");
 
-// ------------------------------------------------------------ sesión / API
+// ------------------------------------------------------------ API (Worker)
 
-let cliente: SupabaseClient | null = null;
-
-function getCliente(): SupabaseClient {
-  if (!cliente) cliente = crearSupabase();
-  return cliente;
-}
-
-async function token(): Promise<string | null> {
-  const { data } = await getCliente().auth.getSession();
-  return data.session?.access_token ?? null;
-}
+// Mismo origen: el navegador llama a /api/admin y Cloudflare lo deriva al
+// Worker. Sin CORS, sin claves públicas, sin login en el cliente.
 
 async function llamar(
   accion: string,
   extra: Record<string, unknown> = {},
 ): Promise<Respuesta> {
-  const jwt = await token();
-  if (!jwt) throw new Error("Sesión vencida. Volvé a entrar.");
-
-  const r = await fetch(endpointAdmin, {
+  const r = await fetch("/api/admin", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${jwt}`,
-      "Content-Type": "application/json",
-      apikey: anonKey,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ accion, ...extra }),
   });
 
-  return (await r.json()) as Respuesta;
+  let datos: Respuesta;
+  try {
+    datos = (await r.json()) as Respuesta;
+  } catch {
+    throw new Error(`El servidor respondió ${r.status}. ¿Está desplegado el Worker?`);
+  }
+  if (!r.ok && !datos.error) throw new Error(`Error ${r.status}`);
+  return datos;
 }
 
 // ------------------------------------------------------------------ render
@@ -388,71 +373,19 @@ async function confirmarBorrado(archivo: Archivo) {
   }
 }
 
-// ------------------------------------------------------------------- login
-
-async function entrar(evento: Event) {
-  evento.preventDefault();
-  const campos = (evento.currentTarget as HTMLFormElement)
-    .elements as HTMLFormControlsCollection;
-  const boton = $("#entrar") as HTMLButtonElement;
-  boton.disabled = true;
-
-  const { error } = await getCliente().auth.signInWithPassword({
-    email: campos.email.value.trim(),
-    password: campos.password.value,
-  });
-
-  boton.disabled = false;
-  if (error) {
-    aviso(error.message, "error");
-    return;
-  }
-  await arrancar();
-}
-
-async function entrarConGoogle() {
-  const { error } = await getCliente().auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: `${window.location.origin}/admin` },
-  });
-  if (error) aviso(error.message, "error");
-}
-
-async function salir() {
-  await getCliente().auth.signOut();
-  location.reload();
-}
-
-async function arrancar() {
-  const { data } = await getCliente().auth.getSession();
-  const haySesion = Boolean(data.session);
-
-  mostrar("login", !haySesion);
-  mostrar("panel", haySesion);
-  if (!haySesion) return;
-
-  $("#usuario").textContent = data.session?.user.email ?? "";
-  try {
-    await refrescar();
-  } catch (e) {
-    aviso(e instanceof Error ? e.message : "Sin acceso al panel", "error");
-  }
-}
-
 // ----------------------------------------------------------------- arranque
 
 document.addEventListener("DOMContentLoaded", () => {
-  if (!hayConfig) {
-    mostrar("sin-config", true);
-    return;
-  }
-
-  $("#form-login").addEventListener("submit", entrar);
-  $("#google").addEventListener("click", entrarConGoogle);
-  $("#salir").addEventListener("click", salir);
+  // Sin login en el cliente: Cloudflare Access ya autenticó antes de servir
+  // esta página. Si el Worker responde 401, falta configurar Access.
   $("#nuevo-proyecto").addEventListener("click", () => abrirEditor(null));
   $("#cancelar").addEventListener("click", () => mostrar("editor", false));
   $("#editor").addEventListener("submit", guardar);
 
-  arrancar();
+  refrescar().catch((e) => {
+    aviso(
+      e instanceof Error ? e.message : "No se pudo cargar el panel",
+      "error",
+    );
+  });
 });

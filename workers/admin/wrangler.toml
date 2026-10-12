@@ -1,0 +1,32 @@
+# Worker admin: única puerta de escritura al repo.
+#
+# La ruta /api/* vive en el MISMO host que el portfolio
+# (portafolio.fhiguera.fyi). Así no hay CORS ni claves públicas:
+# el navegador llama a /api/admin y Cloudflare lo deriva acá.
+# Todo lo demás lo sigue sirviendo GitHub Pages.
+#
+# Vars no secretas (editar acá):
+#   GITHUB_REPO  = "felipehiguera/felipehiguera.github.io"
+#   ACCESS_TEAM  = tu team, p. ej. "mi-equipo" (sin https://)
+#   ACCESS_AUD   = audience tag de la app Access (Zero Trust -> Access ->
+#                  tu app -> Overview)
+#   BRANCH       = "main" (opcional)
+#
+# Secreto (SOLO por comando, nunca en este archivo):
+#   wrangler secret put GITHUB_TOKEN
+# El token es un fine-grained PAT con Contents: Read and write,
+# limitado al repo de arriba.
+
+name = "admin"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+GITHUB_REPO = "felipehiguera/felipehiguera.github.io"
+ACCESS_TEAM = "CAMBIAR-TEAM"
+ACCESS_AUD = "CAMBIAR-AUD"
+BRANCH = "main"
+
+[[routes]]
+pattern = "portafolio.fhiguera.fyi/api/*"
+zone_name = "fhiguera.fyi"

@@ -1,0 +1,9 @@
+{
+  "name": "admin-worker",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "jose": "^6.1.0"
+  }
+}

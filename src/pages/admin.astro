@@ -5,8 +5,9 @@ import Base from "../layouts/Base.astro";
  * Panel de administración.
  *
  * Estático como el resto del sitio: no hay servidor ni base de datos. El
- * login es Supabase Auth y las escrituras van a una Edge Function que es la
- * única que conoce el token de GitHub.
+ * login lo hace Cloudflare Access antes de servir esta página y las
+ * escrituras van al Worker `/api/admin`, que es el único que conoce el
+ * token de GitHub.
  *
  * Va con `noindex` y fuera del sitemap: no tiene nada que un buscador deba
  * indexar.
@@ -27,56 +28,11 @@ const base = import.meta.env.BASE_URL;
 
     <p id="aviso" class="mt-4" role="status" hidden></p>
 
-    <section id="sin-config" hidden class="mt-8 border p-4">
-      <h2 class="text-lg font-semibold">Falta configuración</h2>
-      <p class="mt-2">
-        Esta página necesita las variables <code>PUBLIC_SUPABASE_URL</code> y
-        <code>PUBLIC_SUPABASE_ANON_KEY</code>. Copiá
-        <code>.env.example</code> a <code>.env</code>, completá los valores y
-        reconstruí el sitio.
+    <section id="panel" class="mt-8">
+      <p class="tech text-xs muted">
+        Protegido por Cloudflare Access. Guardar escribe en el repo y dispara
+        el deploy: el sitio se actualiza solo en ~1 minuto.
       </p>
-    </section>
-
-    <section id="login" hidden class="mt-8">
-      <form id="form-login" class="grid gap-3 border p-4">
-        <label class="grid gap-1">
-          <span class="text-sm font-semibold">Correo</span>
-          <input
-            type="email"
-            name="email"
-            required
-            autocomplete="username"
-            class="campo"
-          />
-        </label>
-        <label class="grid gap-1">
-          <span class="text-sm font-semibold">Contraseña</span>
-          <input
-            type="password"
-            name="password"
-            required
-            autocomplete="current-password"
-            class="campo"
-          />
-        </label>
-        <div class="flex flex-wrap gap-3">
-          <button id="entrar" type="submit" class="btn">Entrar</button>
-          <button id="google" type="button" class="btn">Continuar con Google</button>
-        </div>
-      </form>
-      <p class="tech mt-3 text-xs muted">
-        El acceso depende de que tu correo esté en la lista de administradores
-        del servidor. Tener una cuenta no basta.
-      </p>
-    </section>
-
-    <section id="panel" hidden class="mt-8">
-      <div class="flex flex-wrap items-baseline justify-between gap-2">
-        <p class="text-sm muted">
-          Sesión de <strong id="usuario"></strong>
-        </p>
-        <button id="salir" type="button" class="btn">Salir</button>
-      </div>
 
       <div class="mt-8">
         <h2 class="text-lg font-semibold">Secciones visibles</h2>
