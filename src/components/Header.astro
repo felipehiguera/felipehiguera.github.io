@@ -21,14 +21,43 @@ const current = normalize(Astro.url.pathname);
 ---
 
 <header class="border-b" style="border-color: var(--line)">
-  <div class="mx-auto flex max-w-4xl flex-wrap items-baseline gap-x-6 gap-y-2 px-4 py-4">
-    <a href={base} class="text-lg font-semibold no-underline" style="color: var(--fg)">
-      Felipe Higuera
-      <span class="tech block text-xs font-normal" style="color: var(--muted)">
-        Dibujo técnico · CAD/CAM · Soporte IT
+  <div
+    class="mx-auto flex max-w-4xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4"
+  >
+    <a
+      href={base}
+      class="flex items-center gap-3 no-underline"
+      style="color: var(--fg)"
+    >
+      <!-- Compás de dibujo: misma marca que el favicon. -->
+      <svg
+        class="marca-icono"
+        viewBox="0 0 32 32"
+        fill="none"
+        stroke-width="2.8"
+        stroke-linecap="round"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path d="M14.3 7.4 6.2 27.6"></path>
+        <path d="M17.7 7.4 25.8 27.6"></path>
+        <circle cx="16" cy="5.4" r="2.9" stroke="none"></circle>
+      </svg>
+      <span>
+        <span class="block text-lg font-semibold leading-tight"
+          >Felipe Higuera</span
+        >
+        <span class="tech block text-xs font-normal" style="color: var(--muted)">
+          {/* El subtítulo completo no entra a 375 px junto al nav. */}
+          <span class="sm:hidden">Dibujo técnico · CAD/CAM</span>
+          <span class="hidden sm:inline"
+            >Dibujo técnico · CAD/CAM · Soporte IT</span
+          >
+        </span>
       </span>
     </a>
-    <nav aria-label="Navegación principal" class="ml-auto">
+
+    <nav aria-label="Navegación principal" class="w-full sm:ml-auto sm:w-auto">
       <ul class="flex flex-wrap gap-x-5 gap-y-1">
         {
           nav.map((item) => {
@@ -46,3 +75,37 @@ const current = normalize(Astro.url.pathname);
     </nav>
   </div>
 </header>
+
+<style>
+  .marca-icono {
+    width: 1.9rem;
+    height: 1.9rem;
+    flex-shrink: 0;
+    stroke: var(--accent);
+  }
+
+  .marca-icono circle {
+    fill: var(--accent);
+  }
+
+  nav a {
+    padding: 0.25rem 0;
+  }
+
+  /* Página activa: negrita + un punto. Es lo más discreto que aún se
+     distingue sin depender solo del color. */
+  nav a[aria-current="page"] {
+    font-weight: 700;
+  }
+
+  nav a[aria-current="page"]::before {
+    content: "";
+    display: inline-block;
+    width: 0.3125rem;
+    height: 0.3125rem;
+    margin-right: 0.45rem;
+    border-radius: 999px;
+    background: currentColor;
+    vertical-align: 0.125rem;
+  }
+</style>
