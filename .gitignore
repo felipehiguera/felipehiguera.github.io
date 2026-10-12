@@ -22,5 +22,9 @@ pnpm-debug.log*
 # macOS-specific files
 .DS_Store
 
+# Supabase CLI: temporales de link/config local
+supabase/.temp
+supabase/.branches
+
 # jetbrains setting folder
 .idea/
