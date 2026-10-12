@@ -60,9 +60,46 @@ const base = baseUrl();
         <h2 id="editor-titulo" class="text-lg font-semibold">Nuevo proyecto</h2>
         <p id="ruta" class="tech break-all text-xs muted"></p>
         <p id="nuevo" hidden class="text-xs muted">
-          El nombre del archivo sale del título. Cambialo acá abajo antes de
-          guardar si quieres otro.
+          El archivo se guarda con el slug de abajo. Si lo dejás vacío, sale
+          del título.
         </p>
+
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="grid gap-1">
+            <span class="text-sm font-semibold">Slug (nombre del archivo)</span>
+            <input name="slug" class="campo tech" placeholder="se-genera-del-titulo" />
+          </label>
+          <label class="grid gap-1">
+            <span class="text-sm font-semibold">Modelo 3D (ruta en public)</span>
+            <input
+              name="model"
+              class="campo tech"
+              placeholder="models/pieza.glb"
+            />
+          </label>
+        </div>
+
+        <div class="grid gap-2 border p-3">
+          <span class="text-sm font-semibold">Portada</span>
+          <label class="grid gap-1">
+            <span class="text-xs muted">Ruta actual (se llena sola al subir)</span>
+            <input
+              name="cover"
+              class="campo tech"
+              placeholder="../../assets/proyectos/..."
+            />
+          </label>
+          <div class="flex flex-wrap items-center gap-3">
+            <input id="portada-file" type="file" accept="image/*" class="text-sm" />
+            <button id="subir-portada" type="button" class="btn">
+              Subir y usar como portada
+            </button>
+          </div>
+          <p id="portada-estado" class="tech text-xs muted"></p>
+          <p class="text-xs muted">
+            La imagen se achica a 1600 px y se convierte a WebP antes de subir.
+          </p>
+        </div>
 
         <label class="grid gap-1">
           <span class="text-sm font-semibold">Título</span>
@@ -202,6 +239,32 @@ const base = baseUrl();
   .fila-acciones {
     display: flex;
     gap: 0.5rem;
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+  }
+
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 0.05rem 0.45rem;
+    color: var(--muted);
+  }
+
+  .chip.alerta {
+    color: #b3261e;
+    border-color: #b3261e;
+  }
+
+  .chip.ok {
+    color: var(--accent-ink);
+    border-color: var(--accent);
   }
 </style>
 

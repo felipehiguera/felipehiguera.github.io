@@ -148,6 +148,14 @@ async function llamar(
 
 let estadoProyectos: Archivo[] = [];
 let estadoSecciones: Record<string, boolean> = {};
+/** Frontmatter por path, para las insignias de la lista. */
+let metaProyectos: Record<string, Frontmatter> = {};
+
+const ETIQUETAS: Record<string, string> = {
+  "dibujo-tecnico": "Dibujo técnico",
+  "cad-cam": "CAD/CAM",
+  "soporte-it": "Soporte IT",
+};
 
 function pintarLista() {
   const ul = $("#lista");
@@ -166,16 +174,39 @@ function pintarLista() {
   for (const archivo of estadoProyectos) {
     const slug = archivo.nombre.replace(/\.mdx$/, "");
     const item = el("li", { class: "fila" });
+    const info = el(
+      "div",
+      { class: "fila-info" },
+      el("span", { class: "fila-nombre", textContent: slug }),
+    );
+
+    // Insignias de estado: categoría, borrador y destacado de un vistazo.
+    const fm = metaProyectos[archivo.path];
+    if (fm) {
+      const chips = el("div", { class: "chips" });
+      const categoria = String(fm.category ?? "");
+      if (categoria) {
+        chips.append(
+          el("span", {
+            class: "chip",
+            textContent: ETIQUETAS[categoria] ?? categoria,
+          }),
+        );
+      }
+      if (fm.draft) {
+        chips.append(el("span", { class: "chip alerta", textContent: "Borrador" }));
+      }
+      if (fm.featured) {
+        chips.append(el("span", { class: "chip ok", textContent: "Destacado" }));
+      }
+      info.append(chips);
+    }
+
+    info.append(
+      el("span", { class: "tech muted small", textContent: archivo.path }),
+    );
     item.append(
-      el(
-        "div",
-        { class: "fila-info" },
-        el("span", { class: "fila-nombre", textContent: slug }),
-        el("span", {
-          class: "tech muted small",
-          textContent: archivo.path,
-        }),
-      ),
+      info,
       el(
         "div",
         { class: "fila-acciones" },
@@ -237,6 +268,21 @@ async function refrescar() {
   if (!r.ok) throw new Error(r.error ?? "No se pudo leer el repositorio");
   estadoProyectos = r.proyectos ?? [];
   estadoSecciones = r.secciones ?? {};
+
+  // Frontmatter para las insignias. Si alguno falla, la fila igual aparece,
+  // solo sin insignias.
+  const metas = await Promise.allSettled(
+    estadoProyectos.map(async (a) => {
+      const lr = await llamar("leer", { path: a.path });
+      const fm = lr.ok ? separar(lr.contenido ?? "").fm : ({} as Frontmatter);
+      return [a.path, fm] as const;
+    }),
+  );
+  metaProyectos = {};
+  for (const m of metas) {
+    if (m.status === "fulfilled") metaProyectos[m.value[0]] = m.value[1];
+  }
+
   pintarLista();
   pintarSecciones();
 }
@@ -253,16 +299,25 @@ function slugDe(titulo: string): string {
     .slice(0, 60);
 }
 
-type Campos = HTMLFormControlsCollection & { _fm?: Frontmatter };
+type Campos = HTMLFormControlsCollection & {
+  _fm?: Frontmatter;
+  _path?: string;
+};
 
 async function abrirEditor(archivo: Archivo | null) {
   const form = $("#editor") as HTMLFormElement;
   form.reset();
   mostrar("editor", true);
+  $("#portada-estado").textContent = "";
 
   const campos = form.elements as Campos;
   let cuerpo = PLANTILLA;
-  let path = archivo?.path ?? "";
+
+  // El slug solo se edita al crear. Al editar, el archivo ya existe y el
+  // nombre no se toca (renombrar sería borrar + crear, se pierde historial).
+  const slugInput = campos.slug as unknown as HTMLInputElement;
+  slugInput.oninput = null;
+  campos.title.oninput = null;
 
   if (archivo) {
     const r = await llamar("leer", { path: archivo.path });
@@ -283,7 +338,13 @@ async function abrirEditor(archivo: Archivo | null) {
     campos.featured.checked = Boolean(fm.featured);
     campos.draft.checked = Boolean(fm.draft);
     campos.confidential.checked = Boolean(fm.confidential);
+    campos.cover.value = String(fm.cover ?? "");
+    campos.model.value = String(fm.model ?? "");
     campos._fm = fm;
+    slugInput.value = archivo.nombre.replace(/\.mdx$/, "");
+    slugInput.disabled = true;
+    campos._path = archivo.path;
+    $("#ruta").textContent = archivo.path;
     $("#editor-titulo").textContent = "Editar proyecto";
   } else {
     campos.date.value = new Date().toISOString().slice(0, 10);
@@ -300,13 +361,33 @@ async function abrirEditor(archivo: Archivo | null) {
       normativa: [],
       confidential: false,
     };
+    campos._path = undefined;
+    slugInput.value = "";
+    slugInput.disabled = false;
     $("#editor-titulo").textContent = "Nuevo proyecto";
+
+    // El slug sigue al título hasta que se toca a mano.
+    let tocado = false;
+    const actualizarRuta = () => {
+      const s =
+        slugInput.value.trim() ||
+        slugDe(campos.title.value || "nuevo-proyecto");
+      $("#ruta").textContent = `${DIR_PROYECTOS}${s}.mdx`;
+    };
+    slugInput.oninput = () => {
+      tocado = true;
+      actualizarRuta();
+    };
+    campos.title.oninput = () => {
+      if (!tocado) {
+        slugInput.value = slugDe(campos.title.value);
+        actualizarRuta();
+      }
+    };
+    actualizarRuta();
   }
 
   campos.body.value = cuerpo.trimStart();
-
-  const sugerencia = slugDe(campos.title.value || "nuevo-proyecto");
-  $("#ruta").textContent = archivo ? path : `${DIR_PROYECTOS}${sugerencia}.mdx`;
   mostrar("nuevo", !archivo);
 }
 
@@ -336,7 +417,19 @@ async function guardar(evento: Event) {
     normativa: campos.normativa.value.split(",").map((s) => s.trim()).filter(Boolean),
   };
 
-  const nombreArchivo = $("#ruta").textContent ?? "";
+  // Portada y modelo: campo vacío = clave afuera. Un string vacío rompería
+  // la validación (`image()` espera una imagen real, no "").
+  const cover = campos.cover.value.trim();
+  if (cover) fm.cover = cover;
+  else delete fm.cover;
+  const model = campos.model.value.trim();
+  if (model) fm.model = model;
+  else delete fm.model;
+
+  // Al crear, el path sale del slug; al editar, el archivo ya existe.
+  const slug = (campos.slug as unknown as HTMLInputElement).value.trim() ||
+    slugDe(titulo);
+  const nombreArchivo = campos._path ?? `${DIR_PROYECTOS}${slug}.mdx`;
   boton.disabled = true;
   try {
     const r = await llamar("escribir", {
@@ -352,6 +445,81 @@ async function guardar(evento: Event) {
     aviso(e instanceof Error ? e.message : "No se pudo guardar", "error");
   } finally {
     boton.disabled = false;
+  }
+}
+
+// ---------------------------------------------------------- subir portada
+
+/**
+ * Achica la imagen a 1600 px como máximo y la convierte a WebP en el
+ * navegador, antes de subir. Así el repo no engorda con fotos de 12 MP y el
+ * Worker recibe algo liviano (igual valida tipo y 8 MB del su lado).
+ */
+function redimensionar(archivo: File, max: number, calidad: number): Promise<string> {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    const url = URL.createObjectURL(archivo);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const escala = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.width * escala));
+      canvas.height = Math.max(1, Math.round(img.height * escala));
+      canvas.getContext("2d")?.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const data = canvas.toDataURL("image/webp", calidad);
+      if (!data.startsWith("data:image/webp")) {
+        rej(new Error("El navegador no pudo convertir a WebP"));
+        return;
+      }
+      res(data);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      rej(new Error("Archivo no legible como imagen"));
+    };
+    img.src = url;
+  });
+}
+
+async function subirPortada() {
+  const input = $("#portada-file") as HTMLInputElement;
+  const archivo = input.files?.[0];
+  if (!archivo) {
+    aviso("Elegí una imagen primero", "error");
+    return;
+  }
+
+  const estado = $("#portada-estado");
+  estado.textContent = "Procesando y subiendo…";
+  try {
+    const dataUrl = await redimensionar(archivo, 1600, 0.82);
+    const slug =
+      (document.querySelector('[name="slug"]') as HTMLInputElement).value.trim() ||
+      "sin-titulo";
+    const nombre = archivo.name
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
+      .slice(0, 40) || "portada";
+    const path = `src/assets/proyectos/${slug}-${nombre}.webp`;
+
+    const r = await llamar("subir", {
+      path,
+      base64: dataUrl.split(",")[1] ?? "",
+      mensaje: `admin: subir portada de ${slug}`,
+    });
+    if (!r.ok) throw new Error(r.error);
+
+    // Ruta relativa al .mdx, que es como Astro la resuelve (`image()`).
+    (document.querySelector('[name="cover"]') as HTMLInputElement).value =
+      `../../assets/proyectos/${slug}-${nombre}.webp`;
+    estado.textContent = "Subida y asignada como portada. Guardá el proyecto.";
+    aviso("Portada subida. Falta guardar el proyecto.");
+  } catch (e) {
+    estado.textContent = "";
+    aviso(e instanceof Error ? e.message : "No se pudo subir", "error");
   }
 }
 
@@ -379,6 +547,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Sin login en el cliente: Cloudflare Access ya autenticó antes de servir
   // esta página. Si el Worker responde 401, falta configurar Access.
   $("#nuevo-proyecto").addEventListener("click", () => abrirEditor(null));
+  $("#subir-portada").addEventListener("click", subirPortada);
   $("#cancelar").addEventListener("click", () => mostrar("editor", false));
   $("#editor").addEventListener("submit", guardar);
 
