@@ -1,4 +1,6 @@
 ---
+import { baseUrl } from "../utils/base";
+
 interface Props {
   /** Ruta del .glb relativa a `public`, ej. "models/pieza.glb". */
   src: string;
@@ -9,7 +11,7 @@ interface Props {
 }
 
 const { src, alt, title } = Astro.props;
-const url = `${import.meta.env.BASE_URL}${src.replace(/^\//, "")}`;
+const url = `${baseUrl()}${src.replace(/^\//, "")}`;
 ---
 
 <figure

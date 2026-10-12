@@ -3,6 +3,7 @@ import { Image } from "astro:assets";
 import type { CollectionEntry } from "astro:content";
 import PlaceholderMarco from "./PlaceholderMarco.astro";
 import { etiquetaCategoria, fechaCorta, slugDe } from "../utils/proyectos";
+import { baseUrl } from "../utils/base";
 
 interface Props {
   proyecto: CollectionEntry<"proyectos">;
@@ -20,7 +21,7 @@ interface Props {
 
 const { proyecto, nivel = 2 } = Astro.props;
 const { data } = proyecto;
-const url = `${import.meta.env.BASE_URL}proyectos/${slugDe(proyecto.id)}`;
+const url = `${baseUrl()}proyectos/${slugDe(proyecto.id)}`;
 
 // Red de seguridad: si el nivel llegara fuera de rango desde JS, emitimos un
 // encabezado válido en vez de algo como `<h0>` o `<h7>`.

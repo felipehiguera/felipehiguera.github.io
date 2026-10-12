@@ -1,9 +1,9 @@
 # Worker admin: única puerta de escritura al repo.
 #
 # La ruta /api/* vive en el MISMO host que el portfolio
-# (portafolio.fhiguera.fyi). Así no hay CORS ni claves públicas:
+# (www.fhiguera.fyi). Así no hay CORS ni claves públicas:
 # el navegador llama a /api/admin y Cloudflare lo deriva acá.
-# Todo lo demás lo sigue sirviendo GitHub Pages.
+# Todo lo demás lo sirve el landing (Pages) o el proxy (ver ../portafolio).
 #
 # Vars no secretas (editar acá):
 #   GITHUB_REPO  = "felipehiguera/felipehiguera.github.io"
@@ -28,5 +28,5 @@ ACCESS_AUD = "CAMBIAR-AUD"
 BRANCH = "main"
 
 [[routes]]
-pattern = "portafolio.fhiguera.fyi/api/*"
+pattern = "www.fhiguera.fyi/api/*"
 zone_name = "fhiguera.fyi"

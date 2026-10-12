@@ -7,6 +7,7 @@ import PlaceholderMarco from "../../components/PlaceholderMarco.astro";
 import PlanoEmbed from "../../components/PlanoEmbed.astro";
 import SpecList from "../../components/SpecList.astro";
 import { etiquetaCategoria, fechaCorta, slugDe } from "../../utils/proyectos";
+import { baseUrl } from "../../utils/base";
 
 export async function getStaticPaths() {
   // Los borradores no generan ruta: despublicar es real, no solo visual.
@@ -25,7 +26,7 @@ const entregable: string[] = [
   ...(data.model ? [`Modelo 3D: ${data.model}`] : []),
   ...data.planos.map((p) => `Plano: ${p.title}`),
 ];
-const base = import.meta.env.BASE_URL;
+const base = baseUrl();
 // `article:published_time` espera ISO 8601; `<time datetime>` solo la fecha.
 const fechaIso = data.date.toISOString();
 const fechaSolo = fechaIso.slice(0, 10);

@@ -2,8 +2,9 @@
 import { existsSync } from "node:fs";
 import Base from "../layouts/Base.astro";
 import CvPreview from "../components/CvPreview.astro";
+import { baseUrl } from "../utils/base";
 
-const base = import.meta.env.BASE_URL;
+const base = baseUrl();
 const cvExiste = existsSync("public/cv/CV-Felipe-Higuera.pdf");
 
 interface Experiencia {

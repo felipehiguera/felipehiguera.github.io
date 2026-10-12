@@ -13,6 +13,7 @@
  */
 import { Image } from "astro:assets";
 import type { ImageMetadata } from "astro";
+import { baseUrl } from "../utils/base";
 
 const modulos = import.meta.glob<{ default: ImageMetadata }>(
   "../assets/cv-p*.png",
@@ -28,7 +29,7 @@ const hojas = Object.entries(modulos)
   .map((hoja) => hoja.imagen);
 
 const total = hojas.length;
-const pdf = `${import.meta.env.BASE_URL}cv/CV-Felipe-Higuera.pdf`;
+const pdf = `${baseUrl()}cv/CV-Felipe-Higuera.pdf`;
 ---
 
 {
