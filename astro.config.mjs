@@ -6,10 +6,9 @@ import sitemap from '@astrojs/sitemap';
 
 // https://astro.build/config
 export default defineConfig({
-  // TODO: reemplazar con la URL real del sitio de usuario,
-  // ej. "https://<usuario>.github.io". Requerido por @astrojs/sitemap.
-  // Sitio de usuario => base "/" (por defecto, no configurar `base`).
-  site: "https://example.com",
+  // Sitio de usuario GitHub Pages: https://snozzono.github.io
+  // Base "/" (por defecto, no configurar `base`).
+  site: "https://snozzono.github.io",
   vite: {
     plugins: [tailwindcss()]
   },

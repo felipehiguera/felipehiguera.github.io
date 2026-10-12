@@ -1,0 +1,48 @@
+---
+const base = import.meta.env.BASE_URL;
+
+interface NavItem {
+  href: string;
+  label: string;
+}
+
+const nav: NavItem[] = [
+  { href: base, label: "Inicio" },
+  { href: `${base}proyectos`, label: "Proyectos" },
+  { href: `${base}soporte-it`, label: "Soporte IT" },
+  { href: `${base}cv`, label: "CV" },
+];
+
+function normalize(path: string): string {
+  return path.length > 1 ? path.replace(/\/$/, "") : path;
+}
+
+const current = normalize(Astro.url.pathname);
+---
+
+<header class="border-b" style="border-color: var(--line)">
+  <div class="mx-auto flex max-w-4xl flex-wrap items-baseline gap-x-6 gap-y-2 px-4 py-4">
+    <a href={base} class="text-lg font-semibold no-underline" style="color: var(--fg)">
+      Felipe Higuera
+      <span class="tech block text-xs font-normal" style="color: var(--muted)">
+        Dibujo técnico · CAD/CAM · Soporte IT
+      </span>
+    </a>
+    <nav aria-label="Navegación principal" class="ml-auto">
+      <ul class="flex flex-wrap gap-x-5 gap-y-1">
+        {
+          nav.map((item) => {
+            const active = current === normalize(item.href);
+            return (
+              <li>
+                <a href={item.href} aria-current={active ? "page" : undefined}>
+                  {item.label}
+                </a>
+              </li>
+            );
+          })
+        }
+      </ul>
+    </nav>
+  </div>
+</header>

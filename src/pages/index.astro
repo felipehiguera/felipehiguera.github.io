@@ -1,26 +1,18 @@
 ---
-import "../styles/global.css";
-
-const base = import.meta.env.BASE_URL;
+import Base from "../layouts/Base.astro";
 ---
 
-<html lang="es-CL">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
-		<link rel="icon" href={`${base}favicon.ico`} />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<meta
-			name="description"
-			content="TODO: descripción del portafolio de Felipe Higuera (dibujo técnico industrial, CAD/CAM y soporte IT)."
-		/>
-		<title>Felipe Higuera — Portafolio (TODO)</title>
-	</head>
-	<body>
-		<main>
-			<h1>Felipe Higuera — Portafolio</h1>
-			<p>Etapa 1: scaffold verificado. Contenido real en etapas siguientes.</p>
-		</main>
-	</body>
-</html>
+<Base
+  title="Felipe Higuera — Dibujo técnico industrial, CAD/CAM y Soporte IT"
+  description="Portafolio de Felipe Higuera: dibujo técnico industrial, modelado CAD/CAM y soporte IT. Planos, modelos y proceso."
+>
+  <div class="mx-auto max-w-4xl px-4 py-10">
+    <p class="tech text-xs uppercase tracking-widest" style="color: var(--muted)">
+      Portafolio — Dibujo técnico · CAD/CAM · Soporte IT
+    </p>
+    <h1 class="mt-2 text-3xl font-bold">Felipe Higuera</h1>
+    <p class="mt-4 max-w-prose">
+      TODO: párrafo de presentación (quién es y qué hace, 1 párrafo).
+    </p>
+  </div>
+</Base>
