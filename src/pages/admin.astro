@@ -12,6 +12,11 @@ import { baseUrl } from "../utils/base";
  *
  * Va con `noindex` y fuera del sitemap: no tiene nada que un buscador deba
  * indexar.
+ *
+ * Diseño: pensado para un cliente no técnico. Una sola columna, cada campo
+ * con su etiqueta visible, errores junto al campo, y la acción de guardar
+ * siempre a la vista. Los estados (borrador, destacado) se ven en la lista,
+ * no hay que abrir nada para saberlos.
  */
 const base = baseUrl();
 ---
@@ -27,9 +32,9 @@ const base = baseUrl();
       <a href={base}>← Volver al sitio</a>
     </div>
 
-    <p id="aviso" class="mt-4" role="status" hidden></p>
+    <div id="aviso" class="mt-4" role="status" hidden></div>
 
-    <section id="panel" class="mt-8">
+    <section id="panel" class="mt-8" data-base={base}>
       <p class="tech text-xs muted">
         Protegido por Cloudflare Access. Guardar escribe en el repo y dispara
         el deploy: el sitio se actualiza solo en ~1 minuto.
@@ -41,127 +46,231 @@ const base = baseUrl();
           Apagan el link del menú y el módulo del home. La ruta directa sigue
           respondiendo.
         </p>
-        <div id="secciones" class="mt-3 grid gap-1"></div>
+        <div id="secciones" class="mt-3 grid gap-2"></div>
       </div>
 
-      <div class="mt-8">
+      <div class="mt-10">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
           <h2 class="text-lg font-semibold">Proyectos</h2>
-          <button id="nuevo-proyecto" type="button" class="btn">Nuevo proyecto</button>
+          <button id="nuevo-proyecto" type="button" class="btn">
+            + Nuevo proyecto
+          </button>
         </div>
-        <p class="tech mt-1 text-xs muted">
-          Guardar escribe en el repo y dispara el deploy: el sitio se actualiza
-          solo en ~1 minuto.
-        </p>
-        <ul id="lista" class="mt-3 grid gap-2"></ul>
+        <p id="resumen" class="tech mt-2 text-xs muted"></p>
+        <ul id="lista" class="mt-3 grid gap-3"></ul>
       </div>
 
-      <form id="editor" hidden class="mt-8 grid gap-3 border p-4">
-        <h2 id="editor-titulo" class="text-lg font-semibold">Nuevo proyecto</h2>
-        <p id="ruta" class="tech break-all text-xs muted"></p>
-        <p id="nuevo" hidden class="text-xs muted">
-          El archivo se guarda con el slug de abajo. Si lo dejás vacío, sale
-          del título.
-        </p>
-
-        <div class="grid gap-3 sm:grid-cols-2">
-          <label class="grid gap-1">
-            <span class="text-sm font-semibold">Slug (nombre del archivo)</span>
-            <input name="slug" class="campo tech" placeholder="se-genera-del-titulo" />
-          </label>
-          <label class="grid gap-1">
-            <span class="text-sm font-semibold">Modelo 3D (ruta en public)</span>
-            <input
-              name="model"
-              class="campo tech"
-              placeholder="models/pieza.glb"
-            />
-          </label>
-        </div>
-
-        <div class="grid gap-2 border p-3">
-          <span class="text-sm font-semibold">Portada</span>
-          <label class="grid gap-1">
-            <span class="text-xs muted">Ruta actual (se llena sola al subir)</span>
-            <input
-              name="cover"
-              class="campo tech"
-              placeholder="../../assets/proyectos/..."
-            />
-          </label>
-          <div class="flex flex-wrap items-center gap-3">
-            <input id="portada-file" type="file" accept="image/*" class="text-sm" />
-            <button id="subir-portada" type="button" class="btn">
-              Subir y usar como portada
-            </button>
+      <form id="editor" hidden class="mt-10" novalidate>
+        <div class="tarjeta">
+          <div class="tarjeta-cabeza">
+            <h2 id="editor-titulo" class="text-lg font-semibold">
+              Nuevo proyecto
+            </h2>
+            <p id="ruta" class="tech break-all text-xs muted"></p>
           </div>
-          <p id="portada-estado" class="tech text-xs muted"></p>
-          <p class="text-xs muted">
-            La imagen se achica a 1600 px y se convierte a WebP antes de subir.
-          </p>
-        </div>
 
-        <label class="grid gap-1">
-          <span class="text-sm font-semibold">Título</span>
-          <input name="title" required class="campo" />
-        </label>
+          <div id="errores" class="caja-error" hidden>
+            <p class="font-semibold">Faltan datos para guardar:</p>
+            <ul id="errores-lista" class="mt-1"></ul>
+          </div>
 
-        <label class="grid gap-1">
-          <span class="text-sm font-semibold">Resumen (1 o 2 líneas)</span>
-          <input name="summary" required class="campo" />
-        </label>
+          <fieldset>
+            <legend>Datos del proyecto</legend>
+            <label class="grid gap-1">
+              <span class="etiqueta">
+                Título <span class="req" aria-hidden="true">*</span>
+              </span>
+              <input name="title" required class="campo" autocomplete="off" />
+              <span class="pista">El nombre que se ve en la tarjeta y la página.</span>
+              <span class="error-campo" data-err-for="title" hidden>
+                Poné un título.
+              </span>
+            </label>
 
-        <div class="grid gap-3 sm:grid-cols-2">
-          <label class="grid gap-1">
-            <span class="text-sm font-semibold">Fecha</span>
-            <input type="date" name="date" required class="campo" />
-          </label>
-          <label class="grid gap-1">
-            <span class="text-sm font-semibold">Categoría</span>
-            <select name="category" class="campo">
-              <option value="dibujo-tecnico">Dibujo técnico</option>
-              <option value="cad-cam">CAD/CAM</option>
-              <option value="soporte-it">Soporte IT</option>
-            </select>
-          </label>
-        </div>
+            <label class="grid gap-1">
+              <span class="etiqueta">Slug (nombre del archivo)</span>
+              <input
+                name="slug"
+                class="campo tech"
+                autocomplete="off"
+                placeholder="se-genera-del-titulo"
+              />
+              <span class="pista">
+                Solo al crear. Después no se cambia para no romper links.
+              </span>
+            </label>
 
-        <div class="grid gap-3 sm:grid-cols-2">
-          <label class="grid gap-1">
-            <span class="text-sm font-semibold">Software (separado por coma)</span>
-            <input name="software" class="campo" placeholder="Solid Edge, AutoCAD" />
-          </label>
-          <label class="grid gap-1">
-            <span class="text-sm font-semibold">Normativa (separada por coma)</span>
-            <input name="normativa" class="campo" placeholder="ISO 128, ANSI Y14.5" />
-          </label>
-        </div>
+            <label class="grid gap-1">
+              <span class="etiqueta">
+                Resumen <span class="req" aria-hidden="true">*</span>
+              </span>
+              <input
+                name="summary"
+                required
+                class="campo"
+                autocomplete="off"
+                maxlength="200"
+              />
+              <span class="pista">Una o dos líneas. Se ve en la tarjeta.</span>
+              <span class="error-campo" data-err-for="summary" hidden>
+                Poné un resumen.
+              </span>
+            </label>
 
-        <fieldset class="flex flex-wrap gap-4">
-          <label class="flex items-center gap-2">
-            <input type="checkbox" name="featured" />
-            <span class="text-sm">Destacado en el home</span>
-          </label>
-          <label class="flex items-center gap-2">
-            <input type="checkbox" name="draft" />
-            <span class="text-sm">Borrador (oculto y sin ruta)</span>
-          </label>
-          <label class="flex items-center gap-2">
-            <input type="checkbox" name="confidential" />
-            <span class="text-sm">Confidencial</span>
-          </label>
-        </fieldset>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="grid gap-1">
+                <span class="etiqueta">
+                  Fecha <span class="req" aria-hidden="true">*</span>
+                </span>
+                <input type="date" name="date" required class="campo" />
+                <span class="error-campo" data-err-for="date" hidden>
+                  Elegí una fecha.
+                </span>
+              </label>
+              <label class="grid gap-1">
+                <span class="etiqueta">Categoría</span>
+                <select name="category" class="campo">
+                  <option value="dibujo-tecnico">Dibujo técnico</option>
+                  <option value="cad-cam">CAD/CAM</option>
+                  <option value="soporte-it">Soporte IT</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
 
-        <label class="grid gap-1">
-          <span class="text-sm font-semibold">Contenido (Markdown)</span>
-          <textarea name="body" rows="16" class="campo tech"></textarea>
-        </label>
+          <fieldset>
+            <legend>Contenido técnico</legend>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="grid gap-1">
+                <span class="etiqueta">Software</span>
+                <input
+                  name="software"
+                  class="campo"
+                  autocomplete="off"
+                  placeholder="Solid Edge, AutoCAD"
+                />
+                <span class="pista">Separado por coma.</span>
+              </label>
+              <label class="grid gap-1">
+                <span class="etiqueta">Normativa</span>
+                <input
+                  name="normativa"
+                  class="campo"
+                  autocomplete="off"
+                  placeholder="ISO 128, ANSI Y14.5"
+                />
+                <span class="pista">Separada por coma.</span>
+              </label>
+            </div>
+            <label class="grid gap-1">
+              <span class="etiqueta">Modelo 3D</span>
+              <input
+                name="model"
+                class="campo tech"
+                autocomplete="off"
+                placeholder="models/pieza.glb"
+              />
+              <span class="pista">Ruta del .glb dentro de public. Vacío = sin visor.</span>
+            </label>
+          </fieldset>
 
-        <div class="flex flex-wrap gap-3">
-          <button id="guardar" type="submit" class="btn">Guardar</button>
-          <button id="cancelar" type="button" class="btn">Cancelar</button>
+          <fieldset>
+            <legend>Portada</legend>
+            <label class="grid gap-1">
+              <span class="etiqueta">Imagen actual</span>
+              <input
+                name="cover"
+                class="campo tech"
+                autocomplete="off"
+                placeholder="Sin portada"
+              />
+              <span class="pista">Se completa sola al subir. Vacía = marco placeholder.</span>
+            </label>
+            <div class="flex flex-wrap items-center gap-3">
+              <input id="portada-file" type="file" accept="image/*" class="text-sm" />
+              <button id="subir-portada" type="button" class="btn">
+                Subir imagen
+              </button>
+            </div>
+            <p id="portada-estado" class="tech text-xs muted"></p>
+            <p class="text-xs muted">
+              Se achica a 1600 px y se convierte a WebP antes de subir.
+            </p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Visibilidad</legend>
+            <div class="grid gap-2 sm:grid-cols-2">
+              <label class="opcion">
+                <input type="radio" name="estado" value="publicado" />
+                <span>
+                  <strong>Publicado</strong>
+                  <small>Visible en listados, con su página.</small>
+                </span>
+              </label>
+              <label class="opcion">
+                <input type="radio" name="estado" value="borrador" />
+                <span>
+                  <strong>Borrador</strong>
+                  <small>Oculto y sin ruta. Para trabajar tranquilo.</small>
+                </span>
+              </label>
+            </div>
+            <label class="check">
+              <input type="checkbox" name="featured" />
+              <span>
+                <strong>Destacado en el home</strong>
+                <small>Aparece en el carrusel principal.</small>
+              </span>
+            </label>
+            <label class="check">
+              <input type="checkbox" name="confidential" />
+              <span>
+                <strong>Confidencial</strong>
+                <small>Muestra el aviso y el material se ve redactado.</small>
+              </span>
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>Texto del caso</legend>
+            <label class="grid gap-1">
+              <span class="etiqueta">Contenido (Markdown)</span>
+              <textarea name="body" rows="14" class="campo tech"></textarea>
+              <span class="pista">
+                Secciones: Contexto y problema · Proceso · Normativa aplicada ·
+                Software · Entregable · Resultado. `##` para títulos.
+              </span>
+            </label>
+          </fieldset>
+
+          <div class="barra">
+            <button id="guardar" type="submit" class="btn primario">
+              Guardar proyecto
+            </button>
+            <button id="cancelar" type="button" class="btn">Cancelar</button>
+            <span id="guardando" class="tech text-xs muted" hidden>
+              Guardando…
+            </span>
+          </div>
         </div>
       </form>
+
+      <div id="exito" class="caja-exito" hidden>
+        <p class="font-semibold">Guardado.</p>
+        <p class="mt-1 text-sm">
+          El sitio se actualiza solo en ~1 minuto.
+          <a id="exito-ver" href="#" target="_blank" rel="noopener" hidden>
+            Ver página →
+          </a>
+        </p>
+        <div class="mt-3 flex flex-wrap gap-3">
+          <button id="exito-seguir" type="button" class="btn">
+            Seguir editando
+          </button>
+          <button id="exito-cerrar" type="button" class="btn">Cerrar</button>
+        </div>
+      </div>
     </section>
   </div>
 </Base>
@@ -172,19 +281,43 @@ const base = baseUrl();
     border: 1px solid var(--line);
     background: var(--bg);
     color: var(--fg);
-    padding: 0.5rem 0.65rem;
-    border-radius: 0.25rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.375rem;
     font: inherit;
+  }
+
+  .campo[aria-invalid="true"] {
+    border-color: #b3261e;
+  }
+
+  .etiqueta {
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  .req {
+    color: #b3261e;
+  }
+
+  .pista {
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+
+  .error-campo {
+    font-size: 0.82rem;
+    color: #b3261e;
   }
 
   .btn {
     border: 1px solid var(--line);
     background: var(--bg);
     color: var(--accent-ink);
-    padding: 0.45rem 0.9rem;
-    border-radius: 0.25rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 0.375rem;
     cursor: pointer;
     font: inherit;
+    min-height: 2.75rem;
   }
 
   .btn:hover {
@@ -194,6 +327,19 @@ const base = baseUrl();
   .btn:disabled {
     opacity: 0.5;
     cursor: default;
+  }
+
+  .btn.primario {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    .btn.primario {
+      color: #101418;
+    }
   }
 
   .btn.peligro {
@@ -212,6 +358,90 @@ const base = baseUrl();
     overflow-wrap: anywhere;
   }
 
+  /* Tarjeta del editor: secciones separadas con aire. */
+  .tarjeta {
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .tarjeta fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 1rem;
+    border-top: 1px solid var(--line);
+    padding-top: 1.25rem;
+  }
+
+  .tarjeta legend {
+    font-weight: 700;
+    padding: 0 0.5rem 0 0;
+  }
+
+  .tarjeta-cabeza {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  /* Barra de acciones siempre visible al pie del formulario. */
+  .barra {
+    position: sticky;
+    bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+    padding: 0.9rem 0 0.25rem;
+  }
+
+  /* Opciones de visibilidad como tarjetas elegibles. */
+  .opcion,
+  .check {
+    display: flex;
+    gap: 0.65rem;
+    align-items: flex-start;
+    border: 1px solid var(--line);
+    border-radius: 0.375rem;
+    padding: 0.7rem 0.85rem;
+    cursor: pointer;
+  }
+
+  .opcion:has(input:checked) {
+    border-color: var(--accent);
+  }
+
+  .opcion strong,
+  .check strong {
+    display: block;
+    font-size: 0.9rem;
+  }
+
+  .opcion small,
+  .check small {
+    display: block;
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+
+  .opcion input,
+  .check input {
+    margin-top: 0.2rem;
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .check {
+    margin-top: 0.5rem;
+  }
+
   .fila {
     display: flex;
     flex-wrap: wrap;
@@ -219,7 +449,8 @@ const base = baseUrl();
     justify-content: space-between;
     gap: 0.75rem;
     border: 1px solid var(--line);
-    padding: 0.6rem 0.8rem;
+    border-radius: 0.5rem;
+    padding: 0.75rem 0.9rem;
   }
 
   .fila.toggle {
@@ -230,6 +461,7 @@ const base = baseUrl();
 
   .fila-info {
     display: grid;
+    gap: 0.15rem;
   }
 
   .fila-nombre {
@@ -238,7 +470,12 @@ const base = baseUrl();
 
   .fila-acciones {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  .fila-acciones .btn {
+    min-height: 2.75rem;
   }
 
   .chips {
@@ -265,6 +502,26 @@ const base = baseUrl();
   .chip.ok {
     color: var(--accent-ink);
     border-color: var(--accent);
+  }
+
+  .caja-error {
+    border: 1px solid #b3261e;
+    border-radius: 0.375rem;
+    padding: 0.75rem 1rem;
+    color: #b3261e;
+    font-size: 0.9rem;
+  }
+
+  .caja-error ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+  }
+
+  .caja-exito {
+    border: 1px solid var(--accent);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    margin-top: 1.5rem;
   }
 </style>
 

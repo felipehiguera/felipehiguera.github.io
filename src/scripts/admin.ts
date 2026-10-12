@@ -183,6 +183,7 @@ function pintarLista() {
 
     // Insignias de estado: categoría, borrador y destacado de un vistazo.
     const fm = metaProyectos[archivo.path];
+    const esBorrador = Boolean(fm?.draft);
     if (fm) {
       const chips = el("div", { class: "chips" });
       const categoria = String(fm.category ?? "");
@@ -206,25 +207,36 @@ function pintarLista() {
     info.append(
       el("span", { class: "tech muted small", textContent: archivo.path }),
     );
-    item.append(
-      info,
-      el(
-        "div",
-        { class: "fila-acciones" },
-        el("button", {
-          class: "btn",
-          type: "button",
-          textContent: "Editar",
-          onclick: () => abrirEditor(archivo),
-        }),
-        el("button", {
-          class: "btn peligro",
-          type: "button",
-          textContent: "Borrar",
-          onclick: () => confirmarBorrado(archivo),
-        }),
-      ),
+
+    const acciones = el("div", { class: "fila-acciones" });
+    // "Ver" solo si está publicado: un borrador no tiene ruta.
+    if (fm && !esBorrador) {
+      const base =
+        document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
+      const ver = el("a", {
+        class: "btn",
+        textContent: "Ver",
+      }) as unknown as HTMLAnchorElement;
+      ver.href = `${base}proyectos/${slug}`;
+      ver.target = "_blank";
+      ver.rel = "noopener";
+      acciones.append(ver);
+    }
+    acciones.append(
+      el("button", {
+        class: "btn",
+        type: "button",
+        textContent: "Editar",
+        onclick: () => abrirEditor(archivo),
+      }),
+      el("button", {
+        class: "btn peligro",
+        type: "button",
+        textContent: "Borrar",
+        onclick: () => confirmarBorrado(archivo),
+      }),
     );
+    item.append(info, acciones);
     ul.append(item);
   }
 }
@@ -312,6 +324,8 @@ async function abrirEditor(archivo: Archivo | null) {
   $("#portada-estado").textContent = "";
 
   const campos = form.elements as Campos;
+  mostrar("exito", false);
+  mostrar("errores", false);
   let cuerpo = PLANTILLA;
 
   // El slug solo se edita al crear. Al editar, el archivo ya existe y el
@@ -337,7 +351,9 @@ async function abrirEditor(archivo: Archivo | null) {
     campos.software.value = lista(fm.software);
     campos.normativa.value = lista(fm.normativa);
     campos.featured.checked = Boolean(fm.featured);
-    campos.draft.checked = Boolean(fm.draft);
+    (campos.estado as unknown as { value: string }).value = fm.draft
+      ? "borrador"
+      : "publicado";
     campos.confidential.checked = Boolean(fm.confidential);
     campos.cover.value = String(fm.cover ?? "");
     campos.model.value = String(fm.model ?? "");
@@ -350,7 +366,7 @@ async function abrirEditor(archivo: Archivo | null) {
   } else {
     campos.date.value = new Date().toISOString().slice(0, 10);
     campos.category.value = "dibujo-tecnico";
-    campos.draft.checked = true;
+    (campos.estado as unknown as { value: string }).value = "borrador";
     campos._fm = {
       title: "",
       summary: "",
@@ -398,21 +414,50 @@ async function guardar(evento: Event) {
   const campos = form.elements as Campos;
   const boton = $("#guardar") as HTMLButtonElement;
 
+  // Validación con errores junto a cada campo + resumen arriba. Sin esto, un
+  // cliente no sabe por qué no guarda.
+  const problemas: Array<{ campo: string; texto: string }> = [];
+  const marcar = (nombre: string, mal: boolean) => {
+    const input = campos[nombre] as unknown as HTMLInputElement;
+    input.setAttribute("aria-invalid", mal ? "true" : "false");
+    document
+      .querySelector(`[data-err-for="${nombre}"]`)
+      ?.toggleAttribute("hidden", !mal);
+  };
   const titulo = campos.title.value.trim();
-  if (!titulo) {
-    aviso("El título es obligatorio", "error");
+  marcar("title", !titulo);
+  if (!titulo) problemas.push({ campo: "title", texto: "Título" });
+  const resumen = campos.summary.value.trim();
+  marcar("summary", !resumen);
+  if (!resumen) problemas.push({ campo: "summary", texto: "Resumen" });
+  const fecha = campos.date.value;
+  marcar("date", !fecha);
+  if (!fecha) problemas.push({ campo: "date", texto: "Fecha" });
+
+  const caja = $("#errores");
+  const listaErrores = $("#errores-lista");
+  listaErrores.replaceChildren();
+  if (problemas.length > 0) {
+    for (const p of problemas) {
+      listaErrores.append(el("li", { textContent: `Falta: ${p.texto}.` }));
+    }
+    caja.hidden = false;
+    (campos[problemas[0].campo] as unknown as HTMLInputElement).focus();
     return;
   }
+  caja.hidden = true;
 
+  const esBorrador =
+    (campos.estado as unknown as { value: string }).value === "borrador";
   const previo = campos._fm ?? ({} as Frontmatter);
   const fm: Frontmatter = {
     ...previo,
     title: titulo,
-    summary: campos.summary.value.trim(),
-    date: new Date(`${campos.date.value}T00:00:00Z`).toISOString(),
+    summary: resumen,
+    date: new Date(`${fecha}T00:00:00Z`).toISOString(),
     category: campos.category.value,
     featured: campos.featured.checked,
-    draft: campos.draft.checked,
+    draft: esBorrador,
     confidential: campos.confidential.checked,
     software: campos.software.value.split(",").map((s) => s.trim()).filter(Boolean),
     normativa: campos.normativa.value.split(",").map((s) => s.trim()).filter(Boolean),
@@ -432,6 +477,7 @@ async function guardar(evento: Event) {
     slugDe(titulo);
   const nombreArchivo = campos._path ?? `${DIR_PROYECTOS}${slug}.mdx`;
   boton.disabled = true;
+  mostrar("guardando", true);
   try {
     const r = await llamar("escribir", {
       path: nombreArchivo,
@@ -439,13 +485,38 @@ async function guardar(evento: Event) {
       mensaje: `admin: guardar "${titulo}"`,
     });
     if (!r.ok) throw new Error(r.error);
-    aviso("Guardado. El sitio se actualiza en ~1 min.");
-    mostrar("editor", false);
+
+    // El editor queda abierto con lo guardado: si era nuevo, ahora es una
+    // edición (el archivo ya existe). La lista se refresca por detrás.
+    campos._fm = fm;
+    campos._path = nombreArchivo;
+    (campos.slug as unknown as HTMLInputElement).value = slug;
+    (campos.slug as unknown as HTMLInputElement).disabled = true;
+    $("#ruta").textContent = nombreArchivo;
+    $("#editor-titulo").textContent = "Editar proyecto";
+    mostrar("nuevo", false);
+
+    // Caja de éxito con link a la página (solo si está publicado).
+    const ver = $("#exito-ver") as HTMLAnchorElement;
+    if (!esBorrador) {
+      const base =
+        document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
+      ver.href = `${base}proyectos/${slug}`;
+      ver.hidden = false;
+    } else {
+      ver.hidden = true;
+    }
+    mostrar("exito", true);
+    document
+      .querySelector("#exito")
+      ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+
     await refrescar();
   } catch (e) {
     aviso(e instanceof Error ? e.message : "No se pudo guardar", "error");
   } finally {
     boton.disabled = false;
+    mostrar("guardando", false);
   }
 }
 
@@ -550,6 +621,11 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#nuevo-proyecto").addEventListener("click", () => abrirEditor(null));
   $("#subir-portada").addEventListener("click", subirPortada);
   $("#cancelar").addEventListener("click", () => mostrar("editor", false));
+  $("#exito-seguir").addEventListener("click", () => mostrar("exito", false));
+  $("#exito-cerrar").addEventListener("click", () => {
+    mostrar("exito", false);
+    mostrar("editor", false);
+  });
   $("#editor").addEventListener("submit", guardar);
 
   refrescar().catch((e) => {
