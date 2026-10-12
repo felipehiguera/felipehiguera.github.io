@@ -18,7 +18,7 @@ export interface Env {
   GITHUB_REPO: string;
   /** Dominio del equipo, p. ej. "mi-equipo". Sin https:// */
   ACCESS_TEAM: string;
-  /** Audience tag de la aplicación de Access. */
+  /** Audience tags de las apps de Access, separados por coma (admin y api). */
   ACCESS_AUD: string;
   BRANCH?: string;
 }
@@ -157,9 +157,15 @@ export default {
         ),
       );
 
+      // Dos apps (admin y api) => dos AUDs válidos. El JWT trae el de la app
+      // por la que pasó el request; se acepta cualquiera de los dos.
+      const audiencias = env.ACCESS_AUD.split(",")
+        .map((a) => a.trim())
+        .filter(Boolean);
+
       const { payload } = await jwtVerify(jwt, JWKS, {
         issuer: `https://${env.ACCESS_TEAM}.cloudflareaccess.com`,
-        audience: env.ACCESS_AUD,
+        audience: audiencias.length === 1 ? audiencias[0] : audiencias,
       });
 
       if (typeof payload.email !== "string") {

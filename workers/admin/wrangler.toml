@@ -8,8 +8,9 @@
 # Vars no secretas (editar acá):
 #   GITHUB_REPO  = "felipehiguera/felipehiguera.github.io"
 #   ACCESS_TEAM  = tu team, p. ej. "mi-equipo" (sin https://)
-#   ACCESS_AUD   = audience tag de la app Access (Zero Trust -> Access ->
-#                  tu app -> Overview)
+#   ACCESS_AUD   = los dos AUD separados por coma (admin y api):
+#                  Zero Trust -> Access -> cada app -> Overview ->
+#                  Application Audience (AUD) Tag
 #   BRANCH       = "main" (opcional)
 #
 # Secreto (SOLO por comando, nunca en este archivo):
@@ -23,8 +24,8 @@ compatibility_date = "2026-10-01"
 
 [vars]
 GITHUB_REPO = "felipehiguera/felipehiguera.github.io"
-ACCESS_TEAM = "CAMBIAR-TEAM"
-ACCESS_AUD = "CAMBIAR-AUD"
+ACCESS_TEAM = "mhiguera"
+ACCESS_AUD = "82086987de48e659a9a08f64ccf534b0a35c4f8d51901bb731fb3569fbb4b76f,4b40649877e7b007bbdd7335e0c7680e68488cd40ea97ff50ecf1c709093e223"
 BRANCH = "main"
 
 [[routes]]
