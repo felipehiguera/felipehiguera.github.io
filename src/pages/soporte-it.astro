@@ -26,7 +26,7 @@ const casos = (await getCollection("proyectos", ({ data }) => data.category === 
       {
         casos.map((proyecto) => (
           <li>
-            <ProjectCard proyecto={proyecto} />
+            <ProjectCard proyecto={proyecto} nivel={2} />
           </li>
         ))
       }

@@ -6,11 +6,26 @@ import { etiquetaCategoria, fechaCorta, slugDe } from "../utils/proyectos";
 
 interface Props {
   proyecto: CollectionEntry<"proyectos">;
+  /**
+   * Nivel del encabezado que envuelve el título enlazado.
+   *
+   * La tarjeta aparece bajo distintos encabezados padre: en `/proyectos` y
+   * `/soporte-it` cuelga del `<h1>` de la página (nivel 2), mientras que en la
+   * home vive dentro del `<h2>` "Proyectos destacados" (nivel 3). Dejar el
+   * nivel fijo en 2 produciría un `<h2>` dentro de un `<h2>` y rompería la
+   * jerarquía de encabezados.
+   */
+  nivel?: 2 | 3 | 4;
 }
 
-const { proyecto } = Astro.props;
+const { proyecto, nivel = 2 } = Astro.props;
 const { data } = proyecto;
 const url = `${import.meta.env.BASE_URL}proyectos/${slugDe(proyecto.id)}`;
+
+// Red de seguridad: si el nivel llegara fuera de rango desde JS, emitimos un
+// encabezado válido en vez de algo como `<h0>` o `<h7>`.
+const nivelSeguro = nivel >= 2 && nivel <= 4 ? nivel : 2;
+const Etiqueta = `h${nivelSeguro}`;
 ---
 
 <article class="border p-4" style="border-color: var(--line)">
@@ -30,8 +45,8 @@ const url = `${import.meta.env.BASE_URL}proyectos/${slugDe(proyecto.id)}`;
   <p class="tech mt-3 text-xs" style="color: var(--muted)">
     {etiquetaCategoria(data.category)} · {fechaCorta(data.date)}
   </p>
-  <h2 class="mt-1 text-xl font-semibold">
+  <Etiqueta class="mt-1 text-xl font-semibold">
     <a href={url}>{data.title}</a>
-  </h2>
+  </Etiqueta>
   <p class="mt-2">{data.summary}</p>
 </article>

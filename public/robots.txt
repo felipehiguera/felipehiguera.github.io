@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
-Sitemap: /sitemap-index.xml
+# URL absoluta: los buscadores no resuelven rutas relativas contra robots.txt.
+Sitemap: https://felipehiguera.github.io/sitemap-index.xml

@@ -25,12 +25,24 @@ const entregable: string[] = [
   ...data.planos.map((p) => `Plano: ${p.title}`),
 ];
 const base = import.meta.env.BASE_URL;
+// `article:published_time` espera ISO 8601; `<time datetime>` solo la fecha.
+const fechaIso = data.date.toISOString();
+const fechaSolo = fechaIso.slice(0, 10);
 ---
 
-<Base title={`${data.title} — Proyectos — Felipe Higuera`} description={data.summary}>
-  <div class="mx-auto max-w-4xl px-4 py-10">
+<Base
+  title={`${data.title} — Felipe Higuera`}
+  description={data.summary}
+  ogType="article"
+  publishedTime={fechaIso}
+  section={etiquetaCategoria(data.category)}
+>
+  <article
+    class="mx-auto max-w-4xl px-4 py-10"
+    aria-labelledby="titulo-proyecto"
+  >
     <p>
-      <a href={`${base}proyectos`}>← Proyectos</a>
+      <a href={`${base}proyectos`}>← Volver a proyectos</a>
     </p>
     {
       data.confidential && (
@@ -41,9 +53,10 @@ const base = import.meta.env.BASE_URL;
       )
     }
     <p class="tech mt-6 text-xs uppercase tracking-widest" style="color: var(--muted)">
-      {etiquetaCategoria(data.category)} · {fechaCorta(data.date)}
+      {etiquetaCategoria(data.category)} ·{" "}
+      <time datetime={fechaSolo}>{fechaCorta(data.date)}</time>
     </p>
-    <h1 class="mt-2 text-3xl font-bold">{data.title}</h1>
+    <h1 id="titulo-proyecto" class="mt-2 text-3xl font-bold">{data.title}</h1>
     <p class="mt-2 max-w-prose text-lg">{data.summary}</p>
 
     <div class="mt-6 border-y py-4" style="border-color: var(--line)">
@@ -61,6 +74,7 @@ const base = import.meta.env.BASE_URL;
           alt={`Portada del proyecto: ${data.title}`}
           width={1200}
           format="webp"
+          loading="lazy"
         />
       ) : (
         <div class="mt-6">
@@ -106,7 +120,7 @@ const base = import.meta.env.BASE_URL;
     <div class="prose mt-8 max-w-prose">
       <Content />
     </div>
-  </div>
+  </article>
 </Base>
 
 <style>
