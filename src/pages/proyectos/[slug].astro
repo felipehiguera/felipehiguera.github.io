@@ -3,6 +3,7 @@ import { Image } from "astro:assets";
 import { getCollection, render } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import ModelViewer from "../../components/ModelViewer.astro";
+import PlaceholderMarco from "../../components/PlaceholderMarco.astro";
 import PlanoEmbed from "../../components/PlanoEmbed.astro";
 import SpecList from "../../components/SpecList.astro";
 import { etiquetaCategoria, fechaCorta, slugDe } from "../../utils/proyectos";
@@ -62,9 +63,9 @@ const base = import.meta.env.BASE_URL;
           format="webp"
         />
       ) : (
-        <p class="tech mt-6 border p-4 text-sm" style="border-color: var(--line); color: var(--muted)">
-          TODO: imagen de portada pendiente.
-        </p>
+        <div class="mt-6">
+          <PlaceholderMarco label={`Portada pendiente — ${data.title}`} />
+        </div>
       )
     }
 

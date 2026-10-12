@@ -1,6 +1,7 @@
 ---
 import { Image } from "astro:assets";
 import type { CollectionEntry } from "astro:content";
+import PlaceholderMarco from "./PlaceholderMarco.astro";
 import { etiquetaCategoria, fechaCorta, slugDe } from "../utils/proyectos";
 
 interface Props {
@@ -23,9 +24,7 @@ const url = `${import.meta.env.BASE_URL}proyectos/${slugDe(proyecto.id)}`;
         loading="lazy"
       />
     ) : (
-      <p class="tech border p-4 text-xs" style="border-color: var(--line); color: var(--muted)">
-        TODO: imagen de portada pendiente
-      </p>
+      <PlaceholderMarco label={`Portada pendiente — ${data.title}`} />
     )
   }
   <p class="tech mt-3 text-xs" style="color: var(--muted)">

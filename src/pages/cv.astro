@@ -1,0 +1,148 @@
+---
+import { existsSync } from "node:fs";
+import Base from "../layouts/Base.astro";
+
+const base = import.meta.env.BASE_URL;
+const cvExiste = existsSync("public/cv/CV-Felipe-Higuera.pdf");
+
+interface Experiencia {
+  cargo: string;
+  organizacion: string;
+  periodo: string;
+  detalle: string;
+}
+
+const experiencia: Experiencia[] = [
+  {
+    cargo: "Técnico de Soporte de Equipos Informáticos",
+    organizacion: "YoLiquido",
+    periodo: "jul–ago 2024",
+    detalle:
+      "Incidencias N1/N2 de hardware y software, RDP, unidades de red, inventario tecnológico con apoyo de IA.",
+  },
+  {
+    cargo: "Ayudante de Cátedra en Dibujo e Ingeniería de Detalle",
+    organizacion: "FCFM, Universidad de Chile",
+    periodo: "abr 2019 – jul 2021",
+    detalle:
+      "Vistas, cortes y secciones bajo normativa industrial; extracción de vistas normalizadas desde modelos 3D en Solid Edge y AutoCAD; QA de escalas, acotado y simbología para prototipado IoT.",
+  },
+  {
+    cargo: "Diseñador de Productos (Manufactura Digital)",
+    organizacion: "Chol1",
+    periodo: "abr–jul 2020",
+    detalle:
+      "Archivos de corte y planimetría para CNC en Fusion 360, mobiliario RTA; validación de geometría 3D.",
+  },
+  {
+    cargo: "Asistente de Procesos y Diseño Digital",
+    organizacion: "CapacitaPlus",
+    periodo: "dic 2014 – feb 2015",
+    detalle:
+      "Documentación en Office, sitio web corporativo en Dreamweaver.",
+  },
+];
+
+const formacion: string[] = [
+  "Diseñador Industrial, Universidad de Chile — titulado dic 2025.",
+  "Curso IA Generativa e Ingeniería de Prompts, U. de Chile (VTI) — 2026.",
+  "Diplomado en Diseño y Programación Web, AIEP — 2023.",
+  "Certificaciones: Design Thinking (Sence); Facilitación de Equipos (FCFM).",
+];
+
+const habilidades: { grupo: string; items: string }[] = [
+  { grupo: "CAD", items: "AutoCAD, Fusion 360 / Inventor, Solid Edge, Rhinoceros 3D." },
+  {
+    grupo: "Dibujo técnico",
+    items: "Planimetría normada (ISO/ANSI), vistas explotadas, metrología, tolerancias.",
+  },
+  {
+    grupo: "Soporte IT",
+    items: "Soporte N1/N2, redes, RDP, ingeniería de prompts.",
+  },
+  { grupo: "Idiomas", items: "Inglés B1/B2 (lectura técnica)." },
+];
+---
+
+<Base
+  title="CV — Felipe Higuera"
+  description="Currículum de Felipe Higuera: experiencia en dibujo técnico, CAD/CAM y soporte IT, formación y habilidades."
+>
+  <div class="mx-auto max-w-4xl px-4 py-10">
+    <h1 class="text-3xl font-bold">Felipe Ignacio Higuera Cabello</h1>
+    <p class="tech mt-2 text-sm" style="color: var(--muted)">
+      Maipú, Santiago, Chile · Dibujo técnico industrial · CAD/CAM · Soporte IT
+    </p>
+    <p class="mt-4">
+      {
+        cvExiste ? (
+          <a href={`${base}cv/CV-Felipe-Higuera.pdf`} download>
+            Descargar CV en PDF
+          </a>
+        ) : (
+          <span class="tech text-sm" style="color: var(--muted)">
+            TODO: PDF del CV pendiente (public/cv/CV-Felipe-Higuera.pdf)
+          </span>
+        )
+      }
+    </p>
+
+    <section aria-labelledby="exp" class="mt-10">
+      <h2 id="exp" class="text-2xl font-bold">Experiencia</h2>
+      <ul class="mt-4 grid gap-6">
+        {
+          experiencia.map((item) => (
+            <li class="border-t pt-4" style="border-color: var(--line)">
+              <h3 class="text-lg font-semibold">{item.cargo}</h3>
+              <p class="tech text-sm" style="color: var(--muted)">
+                {item.organizacion} · {item.periodo}
+              </p>
+              <p class="mt-1 max-w-prose">{item.detalle}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section aria-labelledby="form" class="mt-10">
+      <h2 id="form" class="text-2xl font-bold">Formación</h2>
+      <ul class="mt-4 grid max-w-prose gap-2">
+        {formacion.map((item) => <li>{item}</li>)}
+      </ul>
+    </section>
+
+    <section aria-labelledby="hab" class="mt-10">
+      <h2 id="hab" class="text-2xl font-bold">Habilidades</h2>
+      <dl class="mt-4 grid max-w-prose gap-3">
+        {
+          habilidades.map((item) => (
+            <div>
+              <dt class="font-semibold">{item.grupo}</dt>
+              <dd class="tech text-sm" style="color: var(--muted)">
+                {item.items}
+              </dd>
+            </div>
+          ))
+        }
+      </dl>
+    </section>
+
+    <section aria-labelledby="contacto" class="mt-10">
+      <h2 id="contacto" class="text-2xl font-bold">Contacto</h2>
+      <ul class="mt-4 flex flex-wrap gap-x-6 gap-y-1">
+        <li>
+          <a href="mailto:felipehiguera@outlook.cl">felipehiguera@outlook.cl</a>
+        </li>
+        <li>
+          <a
+            href="https://www.linkedin.com/in/felipe-h-321316284/"
+            target="_blank"
+            rel="me noopener"
+          >
+            LinkedIn
+          </a>
+        </li>
+      </ul>
+    </section>
+  </div>
+</Base>

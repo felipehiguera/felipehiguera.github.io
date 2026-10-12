@@ -1,0 +1,35 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import ProjectCard from "../components/ProjectCard.astro";
+
+const casos = (await getCollection("proyectos", ({ data }) => data.category === "soporte-it"))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<Base
+  title="Soporte IT — Felipe Higuera"
+  description="Casos de soporte de equipos informáticos N1/N2: escritorio remoto, unidades de red e inventario tecnológico."
+>
+  <div class="mx-auto max-w-4xl px-4 py-10">
+    <h1 class="text-3xl font-bold">Soporte IT</h1>
+    <p class="mt-4 max-w-prose">
+      Soporte de equipos informáticos N1/N2: incidencias de hardware y
+      software, escritorio remoto (RDP), unidades de red e inventario
+      tecnológico. Cada caso se cuenta en formato antes/después, sin datos
+      sensibles.
+    </p>
+    <p class="tech mt-2 text-sm" style="color: var(--muted)">
+      TODO: completar el detalle antes/después dentro de cada caso.
+    </p>
+    <ul class="mt-8 grid gap-6 sm:grid-cols-2">
+      {
+        casos.map((proyecto) => (
+          <li>
+            <ProjectCard proyecto={proyecto} />
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</Base>

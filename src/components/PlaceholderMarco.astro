@@ -1,0 +1,52 @@
+---
+interface Props {
+  /** Texto descriptivo de qué material falta (también es el `aria-label`). */
+  label: string;
+}
+
+const { label } = Astro.props;
+---
+
+<div role="img" aria-label={label} class="marco">
+  <span class="marco-tag tech">PLACEHOLDER</span>
+  <span class="marco-label tech">{label}</span>
+</div>
+
+<style>
+  .marco {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    border: 1px solid var(--line);
+    outline: 1px solid var(--line);
+    outline-offset: 3px;
+    background-color: var(--code-bg);
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 24px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .marco-tag {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--muted);
+    padding: 0.1rem 0.5rem;
+  }
+  .marco-label {
+    font-size: 0.8rem;
+    text-align: center;
+    background: var(--bg);
+    color: var(--muted);
+    border: 1px solid var(--line);
+    padding: 0.5rem 1rem;
+    max-width: 90%;
+  }
+</style>
