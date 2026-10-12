@@ -46,6 +46,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # El proyecto se crea solo la primera vez (`|| true` porque en los
+        # deploys siguientes ya existe y el create fallaría).
         # Wrangler como devDependency: misma versión local y en CI.
-        # Crea el proyecto `fhiguera` solo si no existe.
-        run: npx --no-install wrangler pages deploy dist --project-name=fhiguera --commit-dirty=true
+        run: |
+          npx --no-install wrangler pages project create fhiguera --production-branch=main || true
+          npx --no-install wrangler pages deploy dist --project-name=fhiguera --commit-dirty=true
