@@ -2,7 +2,6 @@
 import { existsSync } from "node:fs";
 import Base from "../layouts/Base.astro";
 import CvPreview from "../components/CvPreview.astro";
-import previewCv from "../assets/cv-preview.png";
 
 const base = import.meta.env.BASE_URL;
 const cvExiste = existsSync("public/cv/CV-Felipe-Higuera.pdf");
@@ -129,6 +128,6 @@ const habilidades: { grupo: string; items: string }[] = [
       </dl>
     </section>
 
-    <CvPreview src={previewCv} />
+    <CvPreview />
   </div>
 </Base>

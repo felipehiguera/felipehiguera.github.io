@@ -1,64 +1,98 @@
 ---
 /**
- * Vista previa de la primera hoja del CV.
+ * Vista previa del CV completo, hoja por hoja.
  *
- * La miniatura se renderiza desde `public/cv/CV-Felipe-Higuera.pdf`, que ya va
- * sin RUT. Si se reemplaza el PDF hay que volver a renderizar la imagen, o la
- * vista previa quedara desactualizada.
+ * Las imágenes se generan desde `public/cv/CV-Felipe-Higuera.pdf` con PyMuPDF
+ * (`dpi=170`, sin el RUT). Se nombran `cv-pNN.png` y este componente las
+ * descubre con `import.meta.glob`, así que agregar una hoja al PDF es volver a
+ * renderizar: no hay que tocar código ni contar páginas a mano.
  *
- * Se muestra como imagen (no un <iframe> con el visor nativo) para no cargar
- * los ~360 KB del PDF en la pagina y para que se vea bien en iOS, donde el PDF
- * embebido se renderiza en miniatura.
+ * Se usan imágenes y no un <iframe> con el visor nativo para no cargar los
+ * ~360 KB del PDF en la página, para que en iOS el PDF embebido no se vea en
+ * miniatura, y para que el texto siga siendo seleccionable por los buscadores.
  */
 import { Image } from "astro:assets";
 import type { ImageMetadata } from "astro";
 
-interface Props {
-  src: ImageMetadata;
-}
+const modulos = import.meta.glob<{ default: ImageMetadata }>(
+  "../assets/cv-p*.png",
+  { eager: true },
+);
 
-const { src } = Astro.props;
+const hojas = Object.entries(modulos)
+  .map(([ruta, modulo]) => ({
+    numero: Number(/cv-p(\d+)\.png$/.exec(ruta)?.[1] ?? 0),
+    imagen: modulo.default,
+  }))
+  .sort((a, b) => a.numero - b.numero)
+  .map((hoja) => hoja.imagen);
+
+const total = hojas.length;
 const pdf = `${import.meta.env.BASE_URL}cv/CV-Felipe-Higuera.pdf`;
 ---
 
-<a class="preview" href={pdf} target="_blank" rel="noopener">
-  <Image
-    src={src}
-    alt="Primera hoja del currículum: nombre, datos de contacto, resumen profesional, experiencia laboral, educación y habilidades técnicas."
-    widths={[320, 480, 640]}
-    sizes="(min-width: 640px) 24rem, 88vw"
-    loading="lazy"
-    format="webp"
-  />
-  <span class="preview-pie tech">Abrir CV completo (PDF) →</span>
-</a>
+{
+  total > 0 && (
+    <figure class="preview">
+      <a href={pdf} target="_blank" rel="noopener">
+        {hojas.map((hoja, i) => (
+          <div class="hoja">
+            <Image
+              src={hoja}
+              alt={`Hoja ${i + 1} de ${total} del currículum de Felipe Higuera: resumen profesional, experiencia laboral, educación y habilidades técnicas.`}
+              widths={[480, 720, 960]}
+              sizes="(min-width: 768px) 44rem, 92vw"
+              loading="lazy"
+              format="webp"
+            />
+          </div>
+        ))}
+        <span class="pie tech">Abrir el CV completo en PDF →</span>
+      </a>
+    </figure>
+  )
+}
 
 <style>
+  /* Mobile first: a pantalla completa; en desktop se limita a 44rem para que
+     una hoja A4 se lea sin quedar diminuta ni estirarse más allá de lo cómodo. */
   .preview {
+    margin-top: 2.5rem;
+  }
+
+  .preview a {
     display: block;
-    margin-top: 1.5rem;
-    max-width: 24rem;
     border: 1px solid var(--line);
     background: var(--bg);
     text-decoration: none;
     transition: border-color 0.15s ease;
   }
 
-  .preview:hover {
+  .preview a:hover {
     border-color: var(--accent);
   }
 
-  .preview :global(img) {
+  .hoja {
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* `:global` porque el <img> lo emite <Image>, que tiene su propio ámbito. */
+  .hoja :global(img) {
     display: block;
     width: 100%;
     height: auto;
   }
 
-  .preview-pie {
+  .pie {
     display: block;
-    padding: 0.6rem 0.9rem;
-    border-top: 1px solid var(--line);
+    padding: 0.7rem 1rem;
     font-size: 0.75rem;
     color: var(--accent-ink);
+  }
+
+  @media (min-width: 768px) {
+    .preview {
+      max-width: 44rem;
+    }
   }
 </style>
