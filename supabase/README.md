@@ -37,15 +37,31 @@ y secret de Google Cloud.
 
 ### 3. Copiar las claves al sitio
 
-**Project Settings → API** → copiar *Project URL* y *anon public key* en un
-archivo `.env` en la raíz del repo (basado en `.env.example`):
+**Project Settings → API** → copiar *Project URL* y la clave publicable
+(`sb_publishable_...`).
+
+Copia primero a `.env.local` para desarrollo local:
 
 ```
 PUBLIC_SUPABASE_URL=https://tuproyecto.supabase.co
-PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
 ```
 
-Estas dos **son públicas por diseño**. La seguridad no depende de ellas.
+Y después, **obligatorio para producción**, en el repo de GitHub:
+**Settings → Secrets and variables → Actions → tab *Variables* → New
+repository variable**, crear estas dos:
+
+| Nombre | Valor |
+|---|---|
+| `PUBLIC_SUPABASE_URL` | `https://ukjpaxqxhqulwksallsu.supabase.co` |
+| `PUBLIC_SUPABASE_ANON_KEY` | `sb_publishable_...` |
+
+El workflow las inyecta al buildear. Sin esto, `/admin` se despliega pero
+muestra "Falta configuración", porque `.env.local` está en `.gitignore` y
+Actions nunca lo lee.
+
+Estas claves **son públicas por diseño** (las usa el navegador del admin y por
+eso se llaman *publishable*). La seguridad no depende de ellas.
 
 ### 4. Crear el token de GitHub
 
