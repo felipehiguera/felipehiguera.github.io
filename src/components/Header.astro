@@ -66,7 +66,7 @@ const current = normalize(Astro.url.pathname);
     </a>
 
     <nav aria-label="Navegación principal" class="w-full sm:ml-auto sm:w-auto">
-      <ul class="flex flex-wrap gap-x-5 gap-y-1">
+      <ul class="flex flex-wrap justify-center gap-x-5 gap-y-1 sm:justify-end">
         {
           nav.map((item) => {
             const active = current === normalize(item.href);
@@ -154,6 +154,13 @@ const current = normalize(Astro.url.pathname);
     padding: 0.3rem 0.8rem;
     font-size: 0.85rem;
     text-decoration: none;
+  }
+
+  /* En móvil el botón queda en su propia línea: centrado como el nav. */
+  @media (max-width: 639px) {
+    .admin-link {
+      margin-inline: auto;
+    }
   }
 
   .admin-link:hover {
