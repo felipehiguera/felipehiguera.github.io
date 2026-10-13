@@ -330,9 +330,15 @@ const html = cuerpoAHtml(data.body);
     });
 
     // El iframe avisa al guardar: se regenera sin caché y se recarga.
+    // Al cancelar, solo se cierra el modal.
     window.addEventListener("message", function (e) {
       if (e.origin !== location.origin) return;
-      if (!e.data || e.data.tipo !== "proyecto-guardado") return;
+      if (!e.data) return;
+      if (e.data.tipo === "editor-cerrado") {
+        cerrar();
+        return;
+      }
+      if (e.data.tipo !== "proyecto-guardado") return;
       fetch(location.href.split("?")[0], {
         headers: { "Cache-Control": "no-cache" },
       }).finally(function () {

@@ -385,12 +385,16 @@ function abrirVistaPrevia() {
     `${ETIQUETAS[categoria] ?? categoria}${fechaCorta ? ` · ${fechaCorta}` : ""}`;
   $("#vista-modal-titulo").textContent = titulo;
   $("#vista-modal-resumen").textContent = resumen;
+  // El editor se esconde mientras dura el preview: dos modales encimados
+  // pelean el z-index y el fondo queda a medias.
+  mostrar("editor-modal", false);
   mostrar("vista-modal", true);
   (document.querySelector("#vista-cerrar") as HTMLButtonElement).focus();
 }
 
 function cerrarVistaPrevia() {
   mostrar("vista-modal", false);
+  mostrar("editor-modal", true);
 }
 
 /** Ver proyecto en modal con iframe a la página real (lazy). */
@@ -829,11 +833,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // esta página. Si el Worker responde 401, falta configurar Access.
   // En modo embed no hay lista ni botón nuevo: solo el editor.
   document.querySelector("#nuevo-proyecto")?.addEventListener("click", () => abrirEditor(null));
-  $("#cancelar").addEventListener("click", () => mostrar("editor-modal", false));
+  $("#cancelar").addEventListener("click", () => {
+    mostrar("editor-modal", false);
+    avisarPadreCerrado();
+  });
   $("#exito-seguir").addEventListener("click", () => mostrar("exito", false));
   $("#exito-cerrar").addEventListener("click", () => {
     mostrar("exito", false);
     mostrar("editor-modal", false);
+    avisarPadreCerrado();
   });
   $("#editor").addEventListener("submit", guardar);
   $("#vista-previa").addEventListener("click", abrirVistaPrevia);
