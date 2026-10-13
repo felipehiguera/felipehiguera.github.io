@@ -1,8 +1,9 @@
 ---
-import { seccionActiva, type Seccion } from "../utils/secciones";
 import { baseUrl } from "../utils/base";
 
 const base = baseUrl();
+
+type Seccion = "proyectos" | "soporte-it" | "cv";
 
 interface NavItem {
   href: string;
@@ -11,12 +12,14 @@ interface NavItem {
   seccion: Seccion | null;
 }
 
+const { secciones = {} } = Astro.props as { secciones?: Record<string, boolean> };
+
 const nav: NavItem[] = [
   { href: base, label: "Inicio", seccion: null },
   { href: `${base}proyectos`, label: "Proyectos", seccion: "proyectos" },
   { href: `${base}soporte-it`, label: "Soporte IT", seccion: "soporte-it" },
   { href: `${base}cv`, label: "CV", seccion: "cv" },
-].filter((item) => item.seccion === null || seccionActiva(item.seccion));
+].filter((item) => item.seccion === null || secciones[item.seccion] !== false);
 
 function normalize(path: string): string {
   return path.length > 1 ? path.replace(/\/$/, "") : path;

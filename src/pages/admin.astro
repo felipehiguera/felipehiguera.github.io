@@ -162,40 +162,75 @@ const base = baseUrl();
                 <span class="pista">Separada por coma.</span>
               </label>
             </div>
-            <label class="grid gap-1">
-              <span class="etiqueta">Modelo 3D</span>
-              <input
-                name="model"
-                class="campo tech"
-                autocomplete="off"
-                placeholder="models/pieza.glb"
-              />
-              <span class="pista">Ruta del .glb dentro de public. Vacío = sin visor.</span>
-            </label>
           </fieldset>
 
           <fieldset>
-            <legend>Portada</legend>
+            <legend>Portada y modelo</legend>
             <label class="grid gap-1">
-              <span class="etiqueta">Imagen actual</span>
+              <span class="etiqueta">Portada actual</span>
               <input
                 name="cover"
                 class="campo tech"
                 autocomplete="off"
                 placeholder="Sin portada"
               />
-              <span class="pista">Se completa sola al subir. Vacía = marco placeholder.</span>
+              <span class="pista">
+                Se completa sola al subir. Vacía = marco placeholder.
+              </span>
             </label>
-            <div class="flex flex-wrap items-center gap-3">
-              <input id="portada-file" type="file" accept="image/*" class="text-sm" />
-              <button id="subir-portada" type="button" class="btn">
-                Subir imagen
-              </button>
+            <div class="grid gap-1">
+              <span class="etiqueta">Cambiar portada</span>
+              <div class="flex flex-wrap items-center gap-3">
+                <input id="portada-file" type="file" accept="image/*" class="text-sm" />
+              </div>
+              <p id="portada-estado" class="tech text-xs muted"></p>
+              <p class="text-xs muted">
+                Se achica a 1600 px y se convierte a WebP al guardar.
+              </p>
             </div>
-            <p id="portada-estado" class="tech text-xs muted"></p>
-            <p class="text-xs muted">
-              Se achica a 1600 px y se convierte a WebP antes de subir.
-            </p>
+            <label class="grid gap-1">
+              <span class="etiqueta">Modelo 3D actual</span>
+              <input
+                name="model"
+                class="campo tech"
+                autocomplete="off"
+                placeholder="Sin modelo"
+              />
+              <span class="pista">Archivo .glb en R2. Vacío = aviso de pendiente.</span>
+            </label>
+            <div class="grid gap-1">
+              <span class="etiqueta">Cambiar modelo</span>
+              <div class="flex flex-wrap items-center gap-3">
+                <input id="modelo-file" type="file" accept=".glb,.gltf" class="text-sm" />
+              </div>
+              <p id="modelo-estado" class="tech text-xs muted"></p>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Planos (PDF)</legend>
+            <ul id="planos-lista" class="grid gap-2"></ul>
+            <div class="grid gap-2 border p-3">
+              <span class="etiqueta">Agregar plano</span>
+              <label class="grid gap-1">
+                <span class="text-xs muted">Título del plano</span>
+                <input
+                  id="plano-titulo"
+                  class="campo"
+                  autocomplete="off"
+                  placeholder="Lámina 01 — Planta"
+                />
+              </label>
+              <div class="flex flex-wrap items-center gap-3">
+                <input id="plano-file" type="file" accept=".pdf" class="text-sm" />
+                <button id="plano-agregar" type="button" class="btn">
+                  Agregar a la lista
+                </button>
+              </div>
+              <p class="text-xs muted">
+                Se sube al guardar el proyecto, junto con todo lo demás.
+              </p>
+            </div>
           </fieldset>
 
           <fieldset>

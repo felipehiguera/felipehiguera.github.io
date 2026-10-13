@@ -1,45 +1,55 @@
-﻿import { parse, stringify } from "yaml";
-
-/**
+﻿/**
  * Lógica del panel de administración.
  *
- * No habla nunca con la API de GitHub: todas las escrituras pasan por el
- * Worker `/api/admin`, que es el único que tiene el token. La autenticación
- * la hace Cloudflare Access antes de que esta página cargue, así que acá no
- * hay login: si ves esto, ya pasaste.
+ * Arquitectura dinámica: D1 es la única fuente de verdad y R2 guarda los
+ * binarios. Guardar es instantáneo, sin rebuilds. El panel nunca pide rutas:
+ * el slug sale del título y las URLs de archivos las devuelve la subida.
+ *
+ * No habla nunca con GitHub: todo pasa por el Worker `/portafolio/admin/api`,
+ * que es el único que toca D1/R2. La autenticación la hace Cloudflare Access
+ * antes de servir esta página.
  */
 
-const DIR_PROYECTOS = "src/content/proyectos/";
-
 interface Archivo {
-  nombre: string;
-  path: string;
-  sha: string;
-}
-
-interface Frontmatter {
+  slug: string;
   title: string;
   summary: string;
   date: string;
   featured: boolean;
   draft: boolean;
   category: string;
+  confidential: boolean;
+  cover: string | null;
+  updated_at: string;
+}
+
+interface Proyecto extends Archivo {
   software: string[];
   normativa: string[];
-  confidential: boolean;
-  cover?: unknown;
-  model?: string;
-  planos?: unknown[];
-  [clave: string]: unknown;
+  model: string | null;
+  planos: Array<{ title: string; url: string }>;
+  body: string;
+}
+
+interface PlanoOk {
+  title: string;
+  url: string;
+}
+
+interface PlanoNuevo {
+  title: string;
+  file: File;
 }
 
 interface Respuesta {
   ok: boolean;
   error?: string;
   proyectos?: Archivo[];
+  proyecto?: Proyecto;
   secciones?: Record<string, boolean> | null;
-  contenido?: string;
-  sha?: string;
+  slug?: string;
+  url?: string;
+  key?: string;
 }
 
 // ---------------------------------------------------------------- utilidades
@@ -51,8 +61,7 @@ const el = <K extends keyof HTMLElementTagNameMap>(
   props: Partial<HTMLElementTagNameMap[K]> & { class?: string } = {},
   ...hijos: Array<Node | string>
 ): HTMLElementTagNameMap[K] => {
-  // `class` no es asignable por propiedad en el DOM (es `className`):
-  // Object.assign lo ignoraría en silencio y el nodo quedaría sin clases.
+  // `class` no es asignable por propiedad en el DOM (es `className`).
   const { class: clases, ...resto } = props;
   const nodo = Object.assign(document.createElement(tag), resto);
   if (clases) nodo.setAttribute("class", clases);
@@ -79,7 +88,182 @@ const aviso = (mensaje: string, tipo: "ok" | "error" = "ok") => {
   if (tipo === "ok") window.setTimeout(() => (nodo.hidden = true), 6000);
 };
 
-// ------------------------------------------------------- frontmatter (MDX)
+// ------------------------------------------------------------ sesión / API
+
+// Mismo origen y misma app de Access: el navegador llama a la API bajo
+// /portafolio/admin/api, ya con la sesión del admin. Sin CORS, sin claves
+// públicas, sin login en el cliente.
+
+async function llamar(
+  accion: string,
+  extra: Record<string, unknown> = {},
+): Promise<Respuesta> {
+  let r: Response;
+  try {
+    r = await fetch("/portafolio/admin/api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accion, ...extra }),
+    });
+  } catch {
+    throw new Error("Sin conexión con el servidor. ¿Está desplegado el Worker?");
+  }
+
+  let datos: Respuesta;
+  try {
+    datos = (await r.json()) as Respuesta;
+  } catch {
+    throw new Error(`El servidor respondió ${r.status}. ¿Está desplegado el Worker?`);
+  }
+  if (!r.ok && !datos.error) throw new Error(`Error ${r.status}`);
+  return datos;
+}
+
+// ------------------------------------------------------------------ render
+
+let estadoProyectos: Archivo[] = [];
+let estadoSecciones: Record<string, boolean> = {};
+
+const ETIQUETAS: Record<string, string> = {
+  "dibujo-tecnico": "Dibujo técnico",
+  "cad-cam": "CAD/CAM",
+  "soporte-it": "Soporte IT",
+};
+
+function pintarLista() {
+  const ul = $("#lista");
+  ul.replaceChildren();
+
+  if (estadoProyectos.length === 0) {
+    ul.append(
+      el("li", {
+        class: "tech muted",
+        textContent: "No hay proyectos todavía.",
+      }),
+    );
+    return;
+  }
+
+  const base = document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
+  for (const archivo of estadoProyectos) {
+    const item = el("li", { class: "fila" });
+    const info = el(
+      "div",
+      { class: "fila-info" },
+      el("span", { class: "fila-nombre", textContent: archivo.title || archivo.slug }),
+    );
+
+    const chips = el("div", { class: "chips" });
+    chips.append(
+      el("span", {
+        class: "chip",
+        textContent: ETIQUETAS[archivo.category] ?? archivo.category,
+      }),
+    );
+    if (archivo.draft) {
+      chips.append(el("span", { class: "chip alerta", textContent: "Borrador" }));
+    }
+    if (archivo.featured) {
+      chips.append(el("span", { class: "chip ok", textContent: "Destacado" }));
+    }
+    info.append(chips);
+    info.append(
+      el("span", { class: "tech muted small", textContent: archivo.slug }),
+    );
+
+    const acciones = el("div", { class: "fila-acciones" });
+    if (!archivo.draft) {
+      const ver = el("a", { class: "btn", textContent: "Ver" }) as unknown as HTMLAnchorElement;
+      ver.href = `${base}proyectos/${archivo.slug}`;
+      ver.target = "_blank";
+      ver.rel = "noopener";
+      acciones.append(ver);
+    }
+    acciones.append(
+      el("button", {
+        class: "btn",
+        type: "button",
+        textContent: "Editar",
+        onclick: () => abrirEditor(archivo.slug),
+      }),
+      el("button", {
+        class: "btn peligro",
+        type: "button",
+        textContent: "Borrar",
+        onclick: () => confirmarBorrado(archivo),
+      }),
+    );
+    item.append(info, acciones);
+    ul.append(item);
+  }
+}
+
+function pintarSecciones() {
+  const contenedor = $("#secciones");
+  contenedor.replaceChildren();
+
+  for (const [seccion, valor] of Object.entries(estadoSecciones)) {
+    const fila = el("label", { class: "fila toggle" });
+    const input = el("input", { type: "checkbox" }) as HTMLInputElement;
+    input.checked = valor;
+
+    input.addEventListener("change", async () => {
+      try {
+        const r = await llamar("secciones.poner", {
+          name: seccion,
+          visible: input.checked,
+        });
+        if (!r.ok) throw new Error(r.error);
+        estadoSecciones[seccion] = input.checked;
+        aviso(`Sección "${seccion}" ${input.checked ? "activada" : "desactivada"}. Ya está visible.`);
+      } catch (e) {
+        input.checked = !input.checked;
+        aviso(e instanceof Error ? e.message : "No se pudo guardar", "error");
+      }
+    });
+
+    fila.append(input, el("span", { textContent: `Mostrar "${seccion}"` }));
+    contenedor.append(fila);
+  }
+}
+
+async function refrescar() {
+  const [lp, ls] = await Promise.all([
+    llamar("proyectos.listar"),
+    llamar("secciones.leer"),
+  ]);
+  if (!lp.ok) throw new Error(lp.error ?? "No se pudo leer el repositorio");
+  estadoProyectos = lp.proyectos ?? [];
+  estadoSecciones = ls.ok && ls.secciones ? ls.secciones : {};
+
+  const total = estadoProyectos.length;
+  const borradores = estadoProyectos.filter((a) => a.draft).length;
+  const destacados = estadoProyectos.filter((a) => a.featured).length;
+  $("#resumen").textContent =
+    `${total} proyecto${total === 1 ? "" : "s"} · ` +
+    `${total - borradores} publicado${total - borradores === 1 ? "" : "s"} · ` +
+    `${borradores} borrador${borradores === 1 ? "" : "es"} · ` +
+    `${destacados} destacado${destacados === 1 ? "" : "s"}`;
+
+  pintarLista();
+  pintarSecciones();
+}
+
+// ------------------------------------------------------------------ editor
+
+function slugDe(titulo: string): string {
+  return titulo
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 60);
+}
+
+type Campos = HTMLFormControlsCollection & {
+  _slugOriginal?: string;
+};
 
 const PLANTILLA = `## Contexto y problema
 
@@ -106,310 +290,193 @@ TODO: visor 3D y/o planos embebidos.
 TODO: una frase concreta.
 `;
 
-function separar(contenido: string): { fm: Frontmatter; cuerpo: string } {
-  const m = /^---\n([\s\S]*?)\n---\n?/.exec(contenido);
-  if (!m) return { fm: {} as Frontmatter, cuerpo: contenido };
-  return {
-    fm: parse(m[1]) as Frontmatter,
-    cuerpo: contenido.slice(m[0].length),
-  };
-}
-
-function unir(fm: Frontmatter, cuerpo: string): string {
-  // Se conserva el frontmatter completo (incluidos `cover` y `planos`, que la
-  // UI no edita) y solo se pisan los campos del formulario.
-  return `---\n${stringify(fm).trimEnd()}\n---\n\n${cuerpo.trimStart()}`;
-}
-
 const lista = (v: unknown) => (Array.isArray(v) ? v.map(String).join(", ") : "");
 
-// ------------------------------------------------------------ API (Worker)
+/** Planos ya guardados (con URL) + nuevos por subir (con File). */
+let planosExistentes: PlanoOk[] = [];
+let planosNuevos: PlanoNuevo[] = [];
 
-// Mismo origen y misma app de Access: el navegador llama a la API bajo
-// /portafolio/admin/api, ya con la sesión del admin. Sin CORS, sin claves
-// públicas, sin login en el cliente.
-
-async function llamar(
-  accion: string,
-  extra: Record<string, unknown> = {},
-): Promise<Respuesta> {
-  const r = await fetch("/portafolio/admin/api", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ accion, ...extra }),
-  });
-
-  let datos: Respuesta;
-  try {
-    datos = (await r.json()) as Respuesta;
-  } catch {
-    throw new Error(`El servidor respondió ${r.status}. ¿Está desplegado el Worker?`);
-  }
-  if (!r.ok && !datos.error) throw new Error(`Error ${r.status}`);
-  return datos;
-}
-
-// ------------------------------------------------------------------ render
-
-let estadoProyectos: Archivo[] = [];
-let estadoSecciones: Record<string, boolean> = {};
-/** Frontmatter por path, para las insignias de la lista. */
-let metaProyectos: Record<string, Frontmatter> = {};
-
-const ETIQUETAS: Record<string, string> = {
-  "dibujo-tecnico": "Dibujo técnico",
-  "cad-cam": "CAD/CAM",
-  "soporte-it": "Soporte IT",
-};
-
-function pintarLista() {
-  const ul = $("#lista");
+function pintarPlanos() {
+  const ul = $("#planos-lista");
   ul.replaceChildren();
 
-  if (estadoProyectos.length === 0) {
+  const filaPlano = (
+    titulo: string,
+    sub: string,
+    quitar: () => void,
+  ) => {
+    const li = el("li", { class: "fila" });
+    li.append(
+      el(
+        "div",
+        { class: "fila-info" },
+        el("span", { class: "fila-nombre", textContent: titulo || "(sin título)" }),
+        el("span", { class: "tech muted small", textContent: sub }),
+      ),
+      el(
+        "div",
+        { class: "fila-acciones" },
+        el("button", {
+          class: "btn peligro",
+          type: "button",
+          textContent: "Quitar",
+          onclick: quitar,
+        }),
+      ),
+    );
+    ul.append(li);
+  };
+
+  if (planosExistentes.length === 0 && planosNuevos.length === 0) {
     ul.append(
-      el("li", {
-        class: "tech muted",
-        textContent: "No hay proyectos todavía.",
-      }),
+      el("li", { class: "tech muted small", textContent: "Sin planos todavía." }),
     );
     return;
   }
-
-  for (const archivo of estadoProyectos) {
-    const slug = archivo.nombre.replace(/\.mdx$/, "");
-    const item = el("li", { class: "fila" });
-    const info = el(
-      "div",
-      { class: "fila-info" },
-      el("span", { class: "fila-nombre", textContent: slug }),
-    );
-
-    // Insignias de estado: categoría, borrador y destacado de un vistazo.
-    const fm = metaProyectos[archivo.path];
-    const esBorrador = Boolean(fm?.draft);
-    if (fm) {
-      const chips = el("div", { class: "chips" });
-      const categoria = String(fm.category ?? "");
-      if (categoria) {
-        chips.append(
-          el("span", {
-            class: "chip",
-            textContent: ETIQUETAS[categoria] ?? categoria,
-          }),
-        );
-      }
-      if (fm.draft) {
-        chips.append(el("span", { class: "chip alerta", textContent: "Borrador" }));
-      }
-      if (fm.featured) {
-        chips.append(el("span", { class: "chip ok", textContent: "Destacado" }));
-      }
-      info.append(chips);
-    }
-
-    info.append(
-      el("span", { class: "tech muted small", textContent: archivo.path }),
-    );
-
-    const acciones = el("div", { class: "fila-acciones" });
-    // "Ver" solo si está publicado: un borrador no tiene ruta.
-    if (fm && !esBorrador) {
-      const base =
-        document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
-      const ver = el("a", {
-        class: "btn",
-        textContent: "Ver",
-      }) as unknown as HTMLAnchorElement;
-      ver.href = `${base}proyectos/${slug}`;
-      ver.target = "_blank";
-      ver.rel = "noopener";
-      acciones.append(ver);
-    }
-    acciones.append(
-      el("button", {
-        class: "btn",
-        type: "button",
-        textContent: "Editar",
-        onclick: () => abrirEditor(archivo),
-      }),
-      el("button", {
-        class: "btn peligro",
-        type: "button",
-        textContent: "Borrar",
-        onclick: () => confirmarBorrado(archivo),
-      }),
-    );
-    item.append(info, acciones);
-    ul.append(item);
-  }
-}
-
-function pintarSecciones() {
-  const contenedor = $("#secciones");
-  contenedor.replaceChildren();
-
-  for (const [seccion, valor] of Object.entries(estadoSecciones)) {
-    const fila = el("label", { class: "fila toggle" });
-    const input = el("input", { type: "checkbox" }) as HTMLInputElement;
-    input.checked = valor;
-
-    input.addEventListener("change", async () => {
-      const secciones = { ...estadoSecciones, [seccion]: input.checked };
-      try {
-        const r = await llamar("escribir", {
-          path: "src/config/secciones.json",
-          contenido: JSON.stringify(secciones, null, 2) + "\n",
-          mensaje: `admin: ${input.checked ? "activar" : "desactivar"} ${seccion}`,
-        });
-        if (!r.ok) throw new Error(r.error);
-        estadoSecciones = secciones;
-        aviso(
-          `Sección "${seccion}" ${
-            input.checked ? "activada" : "desactivada"
-          }. El sitio se actualiza en ~1 min.`,
-        );
-      } catch (e) {
-        input.checked = !input.checked;
-        aviso(e instanceof Error ? e.message : "No se pudo guardar", "error");
-      }
-    });
-
-    fila.append(input, el("span", { textContent: `Mostrar "${seccion}"` }));
-    contenedor.append(fila);
-  }
-}
-
-async function refrescar() {
-  const r = await llamar("listar");
-  if (!r.ok) throw new Error(r.error ?? "No se pudo leer el repositorio");
-  estadoProyectos = r.proyectos ?? [];
-  estadoSecciones = r.secciones ?? {};
-
-  // Frontmatter para las insignias. Si alguno falla, la fila igual aparece,
-  // solo sin insignias.
-  const metas = await Promise.allSettled(
-    estadoProyectos.map(async (a) => {
-      const lr = await llamar("leer", { path: a.path });
-      const fm = lr.ok ? separar(lr.contenido ?? "").fm : ({} as Frontmatter);
-      return [a.path, fm] as const;
+  planosExistentes.forEach((p, i) =>
+    filaPlano(p.title, p.url, () => {
+      planosExistentes.splice(i, 1);
+      pintarPlanos();
     }),
   );
-  metaProyectos = {};
-  for (const m of metas) {
-    if (m.status === "fulfilled") metaProyectos[m.value[0]] = m.value[1];
-  }
-
-  pintarLista();
-  pintarSecciones();
+  planosNuevos.forEach((p, i) =>
+    filaPlano(
+      p.title,
+      `${p.file.name} (se sube al guardar)`,
+      () => {
+        planosNuevos.splice(i, 1);
+        pintarPlanos();
+      },
+    ),
+  );
 }
 
-// ------------------------------------------------------------------ editor
-
-function slugDe(titulo: string): string {
-  return titulo
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 60);
-}
-
-type Campos = HTMLFormControlsCollection & {
-  _fm?: Frontmatter;
-  _path?: string;
-};
-
-async function abrirEditor(archivo: Archivo | null) {
+async function abrirEditor(slug: string | null) {
   const form = $("#editor") as HTMLFormElement;
   form.reset();
   mostrar("editor", true);
-  $("#portada-estado").textContent = "";
-
-  const campos = form.elements as Campos;
   mostrar("exito", false);
   mostrar("errores", false);
-  let cuerpo = PLANTILLA;
+  $("#portada-estado").textContent = "";
+  $("#modelo-estado").textContent = "";
+  planosExistentes = [];
+  planosNuevos = [];
+  pintarPlanos();
 
-  // El slug solo se edita al crear. Al editar, el archivo ya existe y el
-  // nombre no se toca (renombrar sería borrar + crear, se pierde historial).
+  const campos = form.elements as Campos;
   const slugInput = campos.slug as unknown as HTMLInputElement;
   slugInput.oninput = null;
   campos.title.oninput = null;
 
-  if (archivo) {
-    const r = await llamar("leer", { path: archivo.path });
-    if (!r.ok) {
+  if (slug) {
+    const r = await llamar("proyectos.leer", { slug });
+    if (!r.ok || !r.proyecto) {
       aviso(r.error ?? "No se pudo leer", "error");
       mostrar("editor", false);
       return;
     }
-    const separado = separar(r.contenido ?? "");
-    cuerpo = separado.cuerpo;
-    const fm = separado.fm;
-    campos.title.value = String(fm.title ?? "");
-    campos.summary.value = String(fm.summary ?? "");
-    campos.date.value = String(fm.date ?? "").slice(0, 10);
-    campos.category.value = String(fm.category ?? "dibujo-tecnico");
-    campos.software.value = lista(fm.software);
-    campos.normativa.value = lista(fm.normativa);
-    campos.featured.checked = Boolean(fm.featured);
-    (campos.estado as unknown as { value: string }).value = fm.draft
+    const p = r.proyecto;
+    campos.title.value = p.title;
+    campos.summary.value = p.summary;
+    campos.date.value = p.date.slice(0, 10);
+    campos.category.value = p.category;
+    campos.software.value = lista(p.software);
+    campos.normativa.value = lista(p.normativa);
+    campos.featured.checked = p.featured;
+    campos.confidential.checked = p.confidential;
+    (campos.estado as unknown as { value: string }).value = p.draft
       ? "borrador"
       : "publicado";
-    campos.confidential.checked = Boolean(fm.confidential);
-    campos.cover.value = String(fm.cover ?? "");
-    campos.model.value = String(fm.model ?? "");
-    campos._fm = fm;
-    slugInput.value = archivo.nombre.replace(/\.mdx$/, "");
+    campos.cover.value = p.cover ?? "";
+    campos.model.value = p.model ?? "";
+    campos.body.value = (p.body || "").trimStart() || PLANTILLA;
+    campos._slugOriginal = p.slug;
+    slugInput.value = p.slug;
     slugInput.disabled = true;
-    campos._path = archivo.path;
-    $("#ruta").textContent = archivo.path;
+    planosExistentes = [...p.planos];
+    pintarPlanos();
     $("#editor-titulo").textContent = "Editar proyecto";
+    $("#ruta").textContent = `/${p.slug}`;
   } else {
     campos.date.value = new Date().toISOString().slice(0, 10);
     campos.category.value = "dibujo-tecnico";
     (campos.estado as unknown as { value: string }).value = "borrador";
-    campos._fm = {
-      title: "",
-      summary: "",
-      date: "",
-      featured: false,
-      draft: true,
-      category: "dibujo-tecnico",
-      software: [],
-      normativa: [],
-      confidential: false,
-    };
-    campos._path = undefined;
+    campos._slugOriginal = undefined;
     slugInput.value = "";
     slugInput.disabled = false;
+    campos.body.value = PLANTILLA;
     $("#editor-titulo").textContent = "Nuevo proyecto";
 
     // El slug sigue al título hasta que se toca a mano.
     let tocado = false;
-    const actualizarRuta = () => {
-      const s =
-        slugInput.value.trim() ||
-        slugDe(campos.title.value || "nuevo-proyecto");
-      $("#ruta").textContent = `${DIR_PROYECTOS}${s}.mdx`;
-    };
     slugInput.oninput = () => {
       tocado = true;
-      actualizarRuta();
     };
     campos.title.oninput = () => {
-      if (!tocado) {
-        slugInput.value = slugDe(campos.title.value);
-        actualizarRuta();
-      }
+      if (!tocado) slugInput.value = slugDe(campos.title.value);
     };
-    actualizarRuta();
+  }
+  document.querySelector("#editor")?.scrollIntoView({ block: "start", behavior: "smooth" });
+}
+
+/** Sube un archivo a R2 y devuelve su URL pública (/media/...). */
+async function subirArchivo(
+  tipo: "portada" | "plano" | "modelo",
+  slug: string,
+  file: File,
+): Promise<string> {
+  let nombre = file.name;
+  if (tipo === "portada") {
+    // Portadas: achicar a 1600px y convertir a WebP en el navegador.
+    const dataUrl = await new Promise<string>((res, rej) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const escala = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * escala));
+        canvas.height = Math.max(1, Math.round(img.height * escala));
+        canvas.getContext("2d")?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const data = canvas.toDataURL("image/webp", 0.82);
+        if (!data.startsWith("data:image/webp")) {
+          rej(new Error("El navegador no pudo convertir a WebP"));
+          return;
+        }
+        res(data);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        rej(new Error("Archivo no legible como imagen"));
+      };
+      img.src = url;
+    });
+    nombre = file.name.replace(/\.[^.]+$/, "") + ".webp";
+    const r = await llamar("media.subir", {
+      tipo,
+      slug,
+      nombre,
+      base64: dataUrl.split(",")[1] ?? "",
+    });
+    if (!r.ok || !r.url) throw new Error(r.error ?? "No se pudo subir");
+    return r.url;
   }
 
-  campos.body.value = cuerpo.trimStart();
-  mostrar("nuevo", !archivo);
+  const bin = await file.arrayBuffer();
+  const bytes = new Uint8Array(bin);
+  let bin2 = "";
+  const PASO = 0x8000;
+  for (let i = 0; i < bytes.length; i += PASO) {
+    bin2 += String.fromCharCode(...bytes.subarray(i, i + PASO));
+  }
+  const r = await llamar("media.subir", {
+    tipo,
+    slug,
+    nombre: file.name,
+    base64: btoa(bin2),
+  });
+  if (!r.ok || !r.url) throw new Error(r.error ?? "No se pudo subir");
+  return r.url;
 }
 
 async function guardar(evento: Event) {
@@ -418,8 +485,7 @@ async function guardar(evento: Event) {
   const campos = form.elements as Campos;
   const boton = $("#guardar") as HTMLButtonElement;
 
-  // Validación con errores junto a cada campo + resumen arriba. Sin esto, un
-  // cliente no sabe por qué no guarda.
+  // Validación con errores junto a cada campo + resumen arriba.
   const problemas: Array<{ campo: string; texto: string }> = [];
   const marcar = (nombre: string, mal: boolean) => {
     const input = campos[nombre] as unknown as HTMLInputElement;
@@ -453,67 +519,83 @@ async function guardar(evento: Event) {
 
   const esBorrador =
     (campos.estado as unknown as { value: string }).value === "borrador";
-  const previo = campos._fm ?? ({} as Frontmatter);
-  const fm: Frontmatter = {
-    ...previo,
-    title: titulo,
-    summary: resumen,
-    date: new Date(`${fecha}T00:00:00Z`).toISOString(),
-    category: campos.category.value,
-    featured: campos.featured.checked,
-    draft: esBorrador,
-    confidential: campos.confidential.checked,
-    software: campos.software.value.split(",").map((s) => s.trim()).filter(Boolean),
-    normativa: campos.normativa.value.split(",").map((s) => s.trim()).filter(Boolean),
-  };
-
-  // Portada y modelo: campo vacío = clave afuera. Un string vacío rompería
-  // la validación (`image()` espera una imagen real, no "").
-  const cover = campos.cover.value.trim();
-  if (cover) fm.cover = cover;
-  else delete fm.cover;
-  const model = campos.model.value.trim();
-  if (model) fm.model = model;
-  else delete fm.model;
-
-  // Al crear, el path sale del slug; al editar, el archivo ya existe.
-  const slug = (campos.slug as unknown as HTMLInputElement).value.trim() ||
+  const slugFinal =
+    (campos.slug as unknown as HTMLInputElement).value.trim() ||
     slugDe(titulo);
-  const nombreArchivo = campos._path ?? `${DIR_PROYECTOS}${slug}.mdx`;
+
   boton.disabled = true;
   mostrar("guardando", true);
   try {
-    const r = await llamar("escribir", {
-      path: nombreArchivo,
-      contenido: unir(fm, campos.body.value),
-      mensaje: `admin: guardar "${titulo}"`,
+    // Archivos: primero se suben a R2, después se guarda la fila con URLs.
+    const portadaFile = (
+      document.querySelector("#portada-file") as HTMLInputElement
+    ).files?.[0];
+    let cover = campos.cover.value.trim();
+    if (portadaFile) {
+      $("#portada-estado").textContent = "Subiendo portada…";
+      cover = await subirArchivo("portada", slugFinal, portadaFile);
+      campos.cover.value = cover;
+      $("#portada-estado").textContent = "Portada subida.";
+    }
+
+    const modeloFile = (
+      document.querySelector("#modelo-file") as HTMLInputElement
+    ).files?.[0];
+    let model = campos.model.value.trim();
+    if (modeloFile) {
+      $("#modelo-estado").textContent = "Subiendo modelo…";
+      model = await subirArchivo("modelo", slugFinal, modeloFile);
+      campos.model.value = model;
+      $("#modelo-estado").textContent = "Modelo subido.";
+    }
+
+    const planos: PlanoOk[] = [...planosExistentes];
+    for (const n of planosNuevos) {
+      const url = await subirArchivo("plano", slugFinal, n.file);
+      planos.push({ title: n.title.trim() || n.file.name, url });
+    }
+
+    const r = await llamar("proyectos.guardar", {
+      proyecto: {
+        slug: campos._slugOriginal ? undefined : slugFinal,
+        slugOriginal: campos._slugOriginal,
+        title: titulo,
+        summary: resumen,
+        date: fecha,
+        category: campos.category.value,
+        featured: campos.featured.checked,
+        draft: esBorrador,
+        confidential: campos.confidential.checked,
+        software: campos.software.value.split(",").map((s) => s.trim()).filter(Boolean),
+        normativa: campos.normativa.value.split(",").map((s) => s.trim()).filter(Boolean),
+        cover: cover || null,
+        model: model || null,
+        planos,
+        body: campos.body.value,
+      },
     });
-    if (!r.ok) throw new Error(r.error);
+    if (!r.ok || !r.slug) throw new Error(r.error ?? "No se pudo guardar");
 
-    // El editor queda abierto con lo guardado: si era nuevo, ahora es una
-    // edición (el archivo ya existe). La lista se refresca por detrás.
-    campos._fm = fm;
-    campos._path = nombreArchivo;
-    (campos.slug as unknown as HTMLInputElement).value = slug;
+    // Queda abierto como edición del slug definitivo que devolvió el servidor.
+    campos._slugOriginal = r.slug;
+    (campos.slug as unknown as HTMLInputElement).value = r.slug;
     (campos.slug as unknown as HTMLInputElement).disabled = true;
-    $("#ruta").textContent = nombreArchivo;
+    $("#ruta").textContent = `/${r.slug}`;
     $("#editor-titulo").textContent = "Editar proyecto";
-    mostrar("nuevo", false);
+    planosExistentes = [...planos];
+    planosNuevos = [];
+    pintarPlanos();
 
-    // Caja de éxito con link a la página (solo si está publicado).
     const ver = $("#exito-ver") as HTMLAnchorElement;
     if (!esBorrador) {
-      const base =
-        document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
-      ver.href = `${base}proyectos/${slug}`;
+      const base = document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
+      ver.href = `${base}proyectos/${r.slug}`;
       ver.hidden = false;
     } else {
       ver.hidden = true;
     }
     mostrar("exito", true);
-    document
-      .querySelector("#exito")
-      ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    document.querySelector("#exito")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 
     await refrescar();
   } catch (e) {
@@ -524,91 +606,13 @@ async function guardar(evento: Event) {
   }
 }
 
-// ---------------------------------------------------------- subir portada
-
-/**
- * Achica la imagen a 1600 px como máximo y la convierte a WebP en el
- * navegador, antes de subir. Así el repo no engorda con fotos de 12 MP y el
- * Worker recibe algo liviano (igual valida tipo y 8 MB del su lado).
- */
-function redimensionar(archivo: File, max: number, calidad: number): Promise<string> {
-  return new Promise((res, rej) => {
-    const img = new Image();
-    const url = URL.createObjectURL(archivo);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const escala = Math.min(1, max / Math.max(img.width, img.height));
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.max(1, Math.round(img.width * escala));
-      canvas.height = Math.max(1, Math.round(img.height * escala));
-      canvas.getContext("2d")?.drawImage(img, 0, 0, canvas.width, canvas.height);
-      const data = canvas.toDataURL("image/webp", calidad);
-      if (!data.startsWith("data:image/webp")) {
-        rej(new Error("El navegador no pudo convertir a WebP"));
-        return;
-      }
-      res(data);
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      rej(new Error("Archivo no legible como imagen"));
-    };
-    img.src = url;
-  });
-}
-
-async function subirPortada() {
-  const input = $("#portada-file") as HTMLInputElement;
-  const archivo = input.files?.[0];
-  if (!archivo) {
-    aviso("Elegí una imagen primero", "error");
-    return;
-  }
-
-  const estado = $("#portada-estado");
-  estado.textContent = "Procesando y subiendo…";
-  try {
-    const dataUrl = await redimensionar(archivo, 1600, 0.82);
-    const slug =
-      (document.querySelector('[name="slug"]') as HTMLInputElement).value.trim() ||
-      "sin-titulo";
-    const nombre = archivo.name
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 40) || "portada";
-    const path = `src/assets/proyectos/${slug}-${nombre}.webp`;
-
-    const r = await llamar("subir", {
-      path,
-      base64: dataUrl.split(",")[1] ?? "",
-      mensaje: `admin: subir portada de ${slug}`,
-    });
-    if (!r.ok) throw new Error(r.error);
-
-    // Ruta relativa al .mdx, que es como Astro la resuelve (`image()`).
-    (document.querySelector('[name="cover"]') as HTMLInputElement).value =
-      `../../assets/proyectos/${slug}-${nombre}.webp`;
-    estado.textContent = "Subida y asignada como portada. Guardá el proyecto.";
-    aviso("Portada subida. Falta guardar el proyecto.");
-  } catch (e) {
-    estado.textContent = "";
-    aviso(e instanceof Error ? e.message : "No se pudo subir", "error");
-  }
-}
-
 async function confirmarBorrado(archivo: Archivo) {
   const ok = window.confirm(
-    `¿Borrar ${archivo.nombre}? Se elimina el archivo del repo.`,
+    `¿Borrar ${archivo.title || archivo.slug}? Se elimina de la base. Los archivos en R2 quedan huérfanos (no pesan en el sitio).`,
   );
   if (!ok) return;
   try {
-    const r = await llamar("borrar", {
-      path: archivo.path,
-      mensaje: `admin: borrar ${archivo.nombre}`,
-    });
+    const r = await llamar("proyectos.borrar", { slug: archivo.slug });
     if (!r.ok) throw new Error(r.error);
     aviso("Proyecto borrado.");
     await refrescar();
@@ -623,7 +627,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Sin login en el cliente: Cloudflare Access ya autenticó antes de servir
   // esta página. Si el Worker responde 401, falta configurar Access.
   $("#nuevo-proyecto").addEventListener("click", () => abrirEditor(null));
-  $("#subir-portada").addEventListener("click", subirPortada);
   $("#cancelar").addEventListener("click", () => mostrar("editor", false));
   $("#exito-seguir").addEventListener("click", () => mostrar("exito", false));
   $("#exito-cerrar").addEventListener("click", () => {
@@ -631,6 +634,25 @@ document.addEventListener("DOMContentLoaded", () => {
     mostrar("editor", false);
   });
   $("#editor").addEventListener("submit", guardar);
+  $("#plano-agregar")?.addEventListener("click", () => {
+    const titulo = (
+      document.querySelector("#plano-titulo") as HTMLInputElement
+    ).value.trim();
+    const file = (document.querySelector("#plano-file") as HTMLInputElement)
+      .files?.[0];
+    if (!file) {
+      aviso("Elegí el PDF del plano primero", "error");
+      return;
+    }
+    if (!/\.pdf$/i.test(file.name)) {
+      aviso("El plano tiene que ser PDF", "error");
+      return;
+    }
+    planosNuevos.push({ title: titulo, file });
+    (document.querySelector("#plano-titulo") as HTMLInputElement).value = "";
+    (document.querySelector("#plano-file") as HTMLInputElement).value = "";
+    pintarPlanos();
+  });
 
   refrescar().catch((e) => {
     aviso(

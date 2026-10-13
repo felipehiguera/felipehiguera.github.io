@@ -13,6 +13,16 @@ compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 binding = "ASSETS"
 directory = "./dist"
 
+# Lectura de D1 y R2 para las páginas dinámicas y /media/*.
+[[d1_databases]]
+binding = "DB"
+database_name = "portfolio"
+database_id = "f301996e-5dbc-4a19-81af-6ca8d2e143dd"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "portfolio-media"
+
 [[routes]]
 pattern = "www.fhiguera.fyi/portafolio/*"
 zone_name = "fhiguera.fyi"

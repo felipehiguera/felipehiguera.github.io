@@ -1,35 +1,36 @@
 ---
-import { Image } from "astro:assets";
-import { getCollection, render } from "astro:content";
 import Base from "../../layouts/Base.astro";
 import ModelViewer from "../../components/ModelViewer.astro";
 import PlaceholderMarco from "../../components/PlaceholderMarco.astro";
 import PlanoEmbed from "../../components/PlanoEmbed.astro";
 import SpecList from "../../components/SpecList.astro";
-import { etiquetaCategoria, fechaCorta, slugDe } from "../../utils/proyectos";
+import {
+  cuerpoAHtml,
+  etiquetaCategoria,
+  fechaCorta,
+  getDB,
+  leerProyecto,
+} from "../../db/portfolio";
 import { baseUrl } from "../../utils/base";
 
-export async function getStaticPaths() {
-  // Los borradores no generan ruta: despublicar es real, no solo visual.
-  const proyectos = await getCollection("proyectos", ({ data }) => !data.draft);
-  return proyectos.map((entry) => ({
-    params: { slug: slugDe(entry.id) },
-    props: { entry },
-  }));
-}
+// SSR: la ruta se resuelve en cada request contra D1. Los borradores no
+// existen acá (leerProyecto los filtra): despublicar sigue siendo real.
+const slug = Astro.params.slug ?? "";
+const data = await leerProyecto(getDB(Astro.locals), slug);
 
-const { entry } = Astro.props;
-const { data } = entry;
-const { Content } = await render(entry);
+if (!data) {
+  return new Response("Proyecto no encontrado", { status: 404 });
+}
 
 const entregable: string[] = [
   ...(data.model ? [`Modelo 3D: ${data.model}`] : []),
-  ...data.planos.map((p) => `Plano: ${p.title}`),
+  ...data.planos.map((p) => `Plano: ${p.title || p.url}`),
 ];
 const base = baseUrl();
 // `article:published_time` espera ISO 8601; `<time datetime>` solo la fecha.
-const fechaIso = data.date.toISOString();
-const fechaSolo = fechaIso.slice(0, 10);
+const fechaIso = `${data.date}T00:00:00Z`;
+const fechaSolo = data.date.slice(0, 10);
+const html = cuerpoAHtml(data.body);
 ---
 
 <Base
@@ -71,12 +72,15 @@ const fechaSolo = fechaIso.slice(0, 10);
 
     {
       data.cover ? (
-        <Image
-          src={data.cover}
+        <img
+          src={
+            data.cover.startsWith("/")
+              ? `${base}${data.cover.replace(/^\//, "")}`
+              : data.cover
+          }
           alt={`Portada del proyecto: ${data.title}`}
-          width={1200}
-          format="webp"
           loading="lazy"
+          class="mt-6 block h-auto w-full"
         />
       ) : (
         <div class="mt-6">
@@ -96,8 +100,7 @@ const fechaSolo = fechaIso.slice(0, 10);
         </div>
       ) : (
         <p class="tech mt-6 border p-4 text-sm" style="border-color: var(--line); color: var(--muted)">
-          TODO: visor 3D pendiente (dejar el .glb en public/models/ y declarar
-          model: "models/archivo.glb" en el frontmatter).
+          TODO: visor 3D pendiente (subir el .glb desde el panel como modelo).
         </p>
       )
     }
@@ -107,21 +110,18 @@ const fechaSolo = fechaIso.slice(0, 10);
         <ul class="mt-6 grid gap-6">
           {data.planos.map((plano) => (
             <li>
-              <PlanoEmbed title={plano.title} pdf={plano.pdf} thumb={plano.thumb} />
+              <PlanoEmbed title={plano.title || plano.url} pdf={plano.url} />
             </li>
           ))}
         </ul>
       ) : (
         <p class="tech mt-6 border p-4 text-sm" style="border-color: var(--line); color: var(--muted)">
-          TODO: planos embebidos pendientes (PDF en public/planos/ y miniatura en
-          src/assets/, declarados en planos: del frontmatter).
+          TODO: planos pendientes (subir los PDF desde el panel).
         </p>
       )
     }
 
-    <div class="prose mt-8 max-w-prose">
-      <Content />
-    </div>
+    <div class="prose mt-8 max-w-prose" set:html={html} />
   </article>
 </Base>
 

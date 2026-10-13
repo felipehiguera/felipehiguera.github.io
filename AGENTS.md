@@ -18,14 +18,19 @@ Construir un portafolio web estático, rápido y sobrio para un perfil de **Dibu
 > Contacto público: +56 9 3111 0973 · felipehiguera@outlook.cl · LinkedIn: https://www.linkedin.com/in/felipe-h-321316284/
 
 ## Stack (decidido)
-- **Astro** (última versión estable), salida 100% estática.
-- **Contenido en Markdown/MDX** con Content Collections y esquema Zod.
+- **Astro** (última versión estable), SSR en Workers (adapter Cloudflare,
+  `output: "server"`). Todo se lee de D1 en cada request.
+- **Contenido en D1** (tabla `proyectos`, cuerpo Markdown renderizado con
+  `marked`). Los .mdx murieron: la única fuente de verdad es la base.
+- **Binarios en R2** (`portfolio-media`), servidos por `/portafolio/media/*`.
+  Subir genera la URL sola: el panel nunca pide rutas.
 - **React solo si hace falta** como island (`client:visible`); por defecto, componentes `.astro`.
 - **CSS:** CSS plano con variables o Tailwind; elegir una y mantenerla. Sin librerías de UI pesadas.
 - **Visor 3D:** web component `<model-viewer>` de Google, cargado con carga diferida, modelos en `.glb`.
-- **Deploy:** Cloudflare Pages con GitHub Actions (Wrangler). Un solo `dist/`:
-  landing en `/`, portfolio en `/portafolio/` (ver `scripts/assemble-dist.mjs`).
-- **Imágenes:** `astro:assets` / componente `<Image>` → WebP/AVIF, tamaños responsivos.
+- **Deploy:** CI con GitHub Actions (Wrangler): Worker SSR del portfolio,
+  landing a Pages y Worker admin. Sin GitHub Pages en el medio.
+- **Imágenes:** WebP generados al subir (1600 px) + `<img loading="lazy">`.
+  Sitemap dinámico desde D1 (`sitemap-index.xml.ts`).
 
 ### Configuración del deploy
 - `site: https://www.fhiguera.fyi` y `base: /portafolio` en `astro.config.mjs`.

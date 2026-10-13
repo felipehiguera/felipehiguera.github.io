@@ -1,12 +1,14 @@
 ---
-import { Image } from "astro:assets";
-import type { CollectionEntry } from "astro:content";
 import PlaceholderMarco from "./PlaceholderMarco.astro";
-import { etiquetaCategoria, fechaCorta, slugDe } from "../utils/proyectos";
+import type { Proyecto } from "../db/portfolio";
+import { etiquetaCategoria, fechaCorta } from "../db/portfolio";
 import { baseUrl } from "../utils/base";
 
 interface Props {
-  proyecto: CollectionEntry<"proyectos">;
+  proyecto: Pick<
+    Proyecto,
+    "slug" | "title" | "summary" | "date" | "category" | "cover"
+  >;
   /**
    * Nivel del encabezado que envuelve el título enlazado.
    *
@@ -20,8 +22,15 @@ interface Props {
 }
 
 const { proyecto, nivel = 2 } = Astro.props;
-const { data } = proyecto;
-const url = `${baseUrl()}proyectos/${slugDe(proyecto.id)}`;
+const url = `${baseUrl()}proyectos/${proyecto.slug}`;
+
+// Portadas de R2 (`/media/...`) o vacías. Van con <img> común: son WebP ya
+// optimizados al subir, no necesitan el pipeline de astro:assets.
+const coverUrl = proyecto.cover
+  ? proyecto.cover.startsWith("/")
+    ? `${baseUrl()}${proyecto.cover.replace(/^\//, "")}`
+    : proyecto.cover
+  : null;
 
 // Red de seguridad: si el nivel llegara fuera de rango desde JS, emitimos un
 // encabezado válido en vez de algo como `<h0>` o `<h7>`.
@@ -31,23 +40,22 @@ const Etiqueta = `h${nivelSeguro}`;
 
 <article class="border p-4" style="border-color: var(--line)">
   {
-    data.cover ? (
-      <Image
-        src={data.cover}
-        alt={`Portada del proyecto: ${data.title}`}
-        width={800}
-        format="webp"
+    coverUrl ? (
+      <img
+        src={coverUrl}
+        alt={`Portada del proyecto: ${proyecto.title}`}
         loading="lazy"
+        class="block h-auto w-full"
       />
     ) : (
-      <PlaceholderMarco label={`Portada pendiente — ${data.title}`} />
+      <PlaceholderMarco label={`Portada pendiente — ${proyecto.title}`} />
     )
   }
   <p class="tech mt-3 text-xs" style="color: var(--muted)">
-    {etiquetaCategoria(data.category)} · {fechaCorta(data.date)}
+    {etiquetaCategoria(proyecto.category)} · {fechaCorta(proyecto.date)}
   </p>
   <Etiqueta class="mt-1 text-xl font-semibold">
-    <a href={url}>{data.title}</a>
+    <a href={url}>{proyecto.title}</a>
   </Etiqueta>
-  <p class="mt-2">{data.summary}</p>
+  <p class="mt-2">{proyecto.summary}</p>
 </article>

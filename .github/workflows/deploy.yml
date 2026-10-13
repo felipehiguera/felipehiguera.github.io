@@ -1,21 +1,22 @@
-name: Deploy to Cloudflare Pages
+name: Deploy a Cloudflare
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
 
-# El deploy lo hace Wrangler con un API token (secret CLOUDFLARE_API_TOKEN,
-# permiso Pages:Edit) contra la cuenta (secret CLOUDFLARE_ACCOUNT_ID).
+# Todo se despliega desde acá: sitio SSR, landing y worker admin. El único
+# secreto es el token de Cloudflare (Pages:Edit + Workers Scripts:Edit).
+# Ya no hay PAT de GitHub en ningún lado: D1/R2 son la fuente de verdad.
 permissions:
   contents: read
 
 concurrency:
-  group: "pages"
+  group: "deploy"
   cancel-in-progress: false
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,24 +32,27 @@ jobs:
         run: npm ci
 
       - name: Revisar secrets
-        # Falla rápido y con mensaje legible si falta algo, en vez del error
-        # genérico de Wrangler. No imprime valores.
         run: |
           test -n "${{ secrets.CLOUDFLARE_API_TOKEN }}" || { echo "::error::Falta el secret CLOUDFLARE_API_TOKEN"; exit 1; }
           test -n "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" || { echo "::error::Falta el secret CLOUDFLARE_ACCOUNT_ID"; exit 1; }
 
-      - name: Build para Pages
-        # Compila Astro y reordena dist/: landing en raíz,
-        # portfolio en /portafolio/ (ver scripts/assemble-dist.mjs).
-        run: npm run build:pages
+      - name: Build SSR
+        run: npm run build
 
-      - name: Deploy a Pages
+      - name: Deploy portfolio (Worker SSR)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        # El proyecto se crea solo la primera vez (`|| true` porque en los
-        # deploys siguientes ya existe y el create fallaría).
-        # Wrangler como devDependency: misma versión local y en CI.
-        run: |
-          npx --no-install wrangler pages project create fhiguera --production-branch=main || true
-          npx --no-install wrangler pages deploy dist --project-name=fhiguera --commit-dirty=true
+        run: npx --no-install wrangler deploy
+
+      - name: Deploy landing (Pages)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --no-install wrangler pages deploy landing --project-name=fhiguera --commit-dirty=true
+
+      - name: Deploy worker admin
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --no-install wrangler deploy --config workers/admin/wrangler.toml

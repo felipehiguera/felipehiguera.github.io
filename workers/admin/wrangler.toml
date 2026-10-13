@@ -25,7 +25,7 @@ ACCESS_AUD = "82086987de48e659a9a08f64ccf534b0a35c4f8d51901bb731fb3569fbb4b76f,4
 [[d1_databases]]
 binding = "DB"
 database_name = "portfolio"
-database_id = "PONER-DATABASE-ID"
+database_id = "f301996e-5dbc-4a19-81af-6ca8d2e143dd"
 
 [[r2_buckets]]
 binding = "MEDIA"

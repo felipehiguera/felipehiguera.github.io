@@ -13,11 +13,13 @@
  * - Las tarjetas van con `nivel={3}`: cuelgan del `<h2>` "Proyectos
  *   destacados" de la home, así que su título no puede volver a ser un `<h2>`.
  */
-import type { CollectionEntry } from "astro:content";
+import type { Proyecto } from "../db/portfolio";
 import ProjectCard from "./ProjectCard.astro";
 
 interface Props {
-  proyectos: CollectionEntry<"proyectos">[];
+  proyectos: Array<
+    Pick<Proyecto, "slug" | "title" | "summary" | "date" | "category" | "cover">
+  >;
 }
 
 const { proyectos } = Astro.props;
