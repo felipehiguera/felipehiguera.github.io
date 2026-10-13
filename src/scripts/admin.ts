@@ -327,8 +327,8 @@ function urlCover(url: string): string {
   return `${base}${url.replace(/^\//, "")}`;
 }
 
-/** Refresca la mini card de vista previa con lo que hay en el formulario. */
-function actualizarVistaCard() {
+/** Llena el modal de vista previa con lo que hay en el formulario. */
+function abrirVistaPrevia() {
   const form = $("#editor") as HTMLFormElement;
   const campos = form.elements as Campos;
   const titulo = campos.title.value.trim() || "Título del proyecto";
@@ -337,7 +337,19 @@ function actualizarVistaCard() {
   const categoria = campos.category.value;
   const cover = campos.cover.value.trim();
 
-  const img = $("#vista-card-img") as HTMLImageElement;
+  let fechaCorta = "";
+  if (fecha) {
+    const d = new Date(`${fecha}T00:00:00Z`);
+    fechaCorta = Number.isNaN(d.valueOf())
+      ? fecha
+      : d.toLocaleDateString("es-CL", {
+          year: "numeric",
+          month: "short",
+          timeZone: "UTC",
+        });
+  }
+
+  const img = $("#vista-modal-img") as HTMLImageElement;
   const src = urlCover(cover);
   if (src) {
     img.src = src;
@@ -347,30 +359,29 @@ function actualizarVistaCard() {
     img.removeAttribute("src");
     img.hidden = true;
   }
-  $("#vista-card-meta").textContent =
-    `${ETIQUETAS[categoria] ?? categoria}${fecha ? ` · ${fecha.slice(0, 7)}` : ""}`;
-  $("#vista-card-titulo").textContent = titulo;
-  $("#vista-card-resumen").textContent = resumen;
-}
 
-/** Llena el modal de vista previa con lo que hay en el formulario. */
-function abrirVistaPrevia() {
-  actualizarVistaCard();
-  const tomar = (id: string) =>
-    document.querySelector(`#${id}`)?.textContent ?? "";
-  const imgModal = $("#vista-modal-img") as HTMLImageElement;
-  const imgMini = $("#vista-card-img") as HTMLImageElement;
-  if (!imgMini.hidden && imgMini.src) {
-    imgModal.src = imgMini.src;
-    imgModal.alt = imgMini.alt;
-    imgModal.hidden = false;
-  } else {
-    imgModal.removeAttribute("src");
-    imgModal.hidden = true;
+  const chips = $("#vista-modal-chips");
+  chips.replaceChildren();
+  chips.append(
+    el("span", {
+      class: "chip",
+      textContent: ETIQUETAS[categoria] ?? categoria,
+    }),
+  );
+  if (
+    (document.querySelector('[name="estado"]:checked') as HTMLInputElement)
+      ?.value === "borrador"
+  ) {
+    chips.append(el("span", { class: "chip alerta", textContent: "Borrador" }));
   }
-  $("#vista-modal-meta").textContent = tomar("vista-card-meta");
-  $("#vista-modal-titulo").textContent = tomar("vista-card-titulo");
-  $("#vista-modal-resumen").textContent = tomar("vista-card-resumen");
+  if ((campos.featured as unknown as HTMLInputElement).checked) {
+    chips.append(el("span", { class: "chip ok", textContent: "Destacado" }));
+  }
+
+  $("#vista-modal-meta").textContent =
+    `${ETIQUETAS[categoria] ?? categoria}${fechaCorta ? ` · ${fechaCorta}` : ""}`;
+  $("#vista-modal-titulo").textContent = titulo;
+  $("#vista-modal-resumen").textContent = resumen;
   mostrar("vista-modal", true);
   (document.querySelector("#vista-cerrar") as HTMLButtonElement).focus();
 }
@@ -389,7 +400,6 @@ function pintarVistaCover(url: string) {
     img.removeAttribute("src");
     img.hidden = true;
   }
-  actualizarVistaCard();
 }
 
 function pintarPlanos() {
@@ -515,10 +525,6 @@ async function abrirEditor(slug: string | null) {
     };
   }
   document.querySelector("#editor")?.scrollIntoView({ block: "start", behavior: "smooth" });
-
-  // La mini card se actualiza sola con cada tecla.
-  form.oninput = () => actualizarVistaCard();
-  actualizarVistaCard();
 
   // EasyMDE reemplaza el textarea: al crear toma su contenido inicial; si ya
   // existe hay que setear por API. Refrescar porque el formulario parte

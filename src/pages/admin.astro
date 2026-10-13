@@ -79,16 +79,6 @@ const embed = Astro.url.searchParams.has("embed");
             <p id="ruta" class="tech break-all text-xs muted"></p>
           </div>
 
-          <div>
-            <p class="etiqueta">Así se ve en el sitio</p>
-            <article class="vista-card">
-              <img id="vista-card-img" alt="" hidden />
-              <p id="vista-card-meta" class="tech"></p>
-              <h3 id="vista-card-titulo"></h3>
-              <p id="vista-card-resumen"></p>
-            </article>
-          </div>
-
           <div id="errores" class="caja-error" hidden>
             <p class="font-semibold">Faltan datos para guardar:</p>
             <ul id="errores-lista" class="mt-1"></ul>
@@ -346,6 +336,7 @@ const embed = Astro.url.searchParams.has("embed");
         >
           <article class="vista-card grande">
             <img id="vista-modal-img" alt="" hidden />
+            <div id="vista-modal-chips" class="chips"></div>
             <p id="vista-modal-meta" class="tech"></p>
             <h3 id="vista-modal-titulo"></h3>
             <p id="vista-modal-resumen"></p>
@@ -534,11 +525,9 @@ const embed = Astro.url.searchParams.has("embed");
     gap: 0.25rem;
   }
 
-  /* Mini card de vista previa: espejo honesto de ProjectCard. */
+  /* Modal de vista previa: réplica fiel de ProjectCard, en grande. */
   #panel .vista-card {
-    margin-top: 0.5rem;
     border: 1px solid var(--line);
-    border-radius: 0.5rem;
     padding: 1rem;
     display: grid;
     gap: 0.4rem;
