@@ -1,8 +1,11 @@
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/700.css";
 @import "tailwindcss";
 
 /*
  * Tema base: sobrio y técnico.
- * - Una familia sans del sistema + monoespaciada para datos técnicos.
+ * - Space Grotesk para titulares (carácter técnico), sans del sistema para
+ *   texto, monoespaciada para datos técnicos.
  * - Un solo color de acento (azul plano).
  * - Claro/oscuro según `prefers-color-scheme` con variables CSS.
  */
@@ -18,6 +21,8 @@
 
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
     Arial, sans-serif;
+  --font-display: "Space Grotesk", system-ui, -apple-system, "Segoe UI",
+    sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas,
     monospace;
 }
@@ -39,6 +44,13 @@ body {
   color: var(--fg);
   font-family: var(--font-sans);
   line-height: 1.6;
+}
+
+h1,
+h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 a {

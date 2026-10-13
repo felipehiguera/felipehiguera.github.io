@@ -1,0 +1,61 @@
+---
+import mail from "lucide-static/icons/mail.svg?raw";
+import phone from "lucide-static/icons/phone.svg?raw";
+import plus from "lucide-static/icons/plus.svg?raw";
+import pencil from "lucide-static/icons/pencil.svg?raw";
+import trash from "lucide-static/icons/trash-2.svg?raw";
+import eye from "lucide-static/icons/eye.svg?raw";
+import upload from "lucide-static/icons/upload.svg?raw";
+import equis from "lucide-static/icons/x.svg?raw";
+import check from "lucide-static/icons/check.svg?raw";
+import guardar from "lucide-static/icons/save.svg?raw";
+import calendario from "lucide-static/icons/calendar.svg?raw";
+import texto from "lucide-static/icons/file-text.svg?raw";
+import volver from "lucide-static/icons/arrow-left.svg?raw";
+
+/**
+ * Icono Lucide inline (sin JS en runtime).
+ *
+ * Los SVG se importan con `?raw` y se inyectan en el HTML del servidor:
+ * cero costo en el navegador, trazo consistente en todo el sitio.
+ * `linkedin` no existe en Lucide (sacaron las marcas): va dibujado a mano
+ * donde se necesite.
+ */
+const ICONOS = {
+  correo: mail,
+  telefono: phone,
+  mas: plus,
+  lapiz: pencil,
+  borrar: trash,
+  ver: eye,
+  subir: upload,
+  x: equis,
+  check,
+  guardar,
+  calendario,
+  texto,
+  volver,
+} as const;
+
+export type IconoNombre = keyof typeof ICONOS;
+
+interface Props {
+  nombre: IconoNombre;
+}
+
+const { nombre } = Astro.props;
+---
+
+<span class="icono" aria-hidden="true" focusable="false" set:html={ICONOS[nombre]} />
+
+<style>
+  .icono {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  .icono :global(svg) {
+    width: 1.1em;
+    height: 1.1em;
+  }
+</style>

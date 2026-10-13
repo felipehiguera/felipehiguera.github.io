@@ -1,6 +1,9 @@
 ---
 import Base from "../layouts/Base.astro";
+import Icono from "../components/Icono.astro";
 import { baseUrl } from "../utils/base";
+import "easymde/dist/easymde.min.css";
+import "@fortawesome/fontawesome-free/css/solid.min.css";
 
 /**
  * Panel de administración.
@@ -52,8 +55,8 @@ const base = baseUrl();
       <div class="mt-10">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
           <h2 class="text-lg font-semibold">Proyectos</h2>
-          <button id="nuevo-proyecto" type="button" class="btn">
-            + Nuevo proyecto
+          <button id="nuevo-proyecto" type="button" class="btn btn-icono">
+            <Icono nombre="mas" /> Nuevo proyecto
           </button>
         </div>
         <p id="resumen" class="tech mt-2 text-xs muted"></p>
@@ -67,6 +70,16 @@ const base = baseUrl();
               Nuevo proyecto
             </h2>
             <p id="ruta" class="tech break-all text-xs muted"></p>
+          </div>
+
+          <div>
+            <p class="etiqueta">Así se ve en el sitio</p>
+            <article class="vista-card">
+              <img id="vista-card-img" alt="" hidden />
+              <p id="vista-card-meta" class="tech"></p>
+              <h3 id="vista-card-titulo"></h3>
+              <p id="vista-card-resumen"></p>
+            </article>
           </div>
 
           <div id="errores" class="caja-error" hidden>
@@ -224,8 +237,8 @@ const base = baseUrl();
               </label>
               <div class="flex flex-wrap items-center gap-3">
                 <input id="plano-file" type="file" accept=".pdf" class="text-sm" />
-                <button id="plano-agregar" type="button" class="btn">
-                  Agregar a la lista
+                <button id="plano-agregar" type="button" class="btn btn-icono">
+                  <Icono nombre="mas" /> Agregar a la lista
                 </button>
               </div>
               <p class="text-xs muted">
@@ -275,14 +288,15 @@ const base = baseUrl();
               <textarea name="body" rows="14" class="campo tech"></textarea>
               <span class="pista">
                 Secciones: Contexto y problema · Proceso · Normativa aplicada ·
-                Software · Entregable · Resultado. `##` para títulos.
+                Software · Entregable · Resultado. La barra de arriba formatea,
+                el ojo muestra cómo queda.
               </span>
             </label>
           </fieldset>
 
           <div class="barra">
-            <button id="guardar" type="submit" class="btn primario">
-              Guardar proyecto
+            <button id="guardar" type="submit" class="btn primario btn-icono">
+              <Icono nombre="guardar" /> Guardar proyecto
             </button>
             <button id="cancelar" type="button" class="btn">Cancelar</button>
             <span id="guardando" class="tech text-xs muted" hidden>
@@ -312,7 +326,8 @@ const base = baseUrl();
 </Base>
 
 <style is:global>
-  /*
+  /* EasyMDE + FontAwesome via frontmatter (Vite no resuelve @import npm
+     dentro de <style>). */  /*
    * Global ceñido a #panel a propósito: la lista, los toggles y las
    * insignias los crea el JS en el navegador, y el scope automático de
    * Astro (data-astro-cid en el HTML del servidor) nunca los alcanza.
@@ -398,6 +413,12 @@ const base = baseUrl();
     min-height: 2.75rem;
   }
 
+  #panel .btn-icono {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
   #panel .btn:hover {
     border-color: var(--accent);
   }
@@ -477,6 +498,53 @@ const base = baseUrl();
   #panel .tarjeta-cabeza {
     display: grid;
     gap: 0.25rem;
+  }
+
+  /* Mini card de vista previa: espejo honesto de ProjectCard. */
+  #panel .vista-card {
+    margin-top: 0.5rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    display: grid;
+    gap: 0.4rem;
+    max-width: 26rem;
+  }
+
+  #panel .vista-card img {
+    width: 100%;
+    height: auto;
+    border-radius: 0.25rem;
+  }
+
+  #panel .vista-card p.tech {
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  #panel .vista-card h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--accent-ink);
+  }
+
+  #panel .vista-card p:last-child {
+    color: var(--fg);
+  }
+
+  #panel .mini {
+    width: 3.5rem;
+    height: 3.5rem;
+    object-fit: cover;
+    border-radius: 0.375rem;
+    border: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+
+  #panel .fila-principal {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
   }
 
   /* Barra de acciones siempre visible al pie del formulario. */
@@ -622,6 +690,45 @@ const base = baseUrl();
     height: auto;
     border: 1px solid var(--line);
     border-radius: 0.375rem;
+  }
+
+  /* EasyMDE adaptado al tema del sitio (de fábrica es solo claro). */
+  #panel .EasyMDEContainer .CodeMirror {
+    background: var(--bg);
+    color: var(--fg);
+    border-color: var(--line);
+    border-radius: 0 0 0.375rem 0.375rem;
+    padding: 0.65rem 0.8rem;
+    font-size: 0.9rem;
+    line-height: 1.65;
+  }
+
+  #panel .EasyMDEContainer .editor-toolbar {
+    background: var(--bg);
+    border-color: var(--line);
+    border-radius: 0.375rem 0.375rem 0 0;
+  }
+
+  #panel .EasyMDEContainer .editor-toolbar button {
+    color: var(--muted) !important;
+  }
+
+  #panel .EasyMDEContainer .editor-toolbar button:hover,
+  #panel .EasyMDEContainer .editor-toolbar button.active {
+    background: var(--code-bg);
+    border-color: var(--accent);
+    color: var(--accent-ink) !important;
+  }
+
+  #panel .EasyMDEContainer .editor-preview,
+  #panel .EasyMDEContainer .editor-preview-side {
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  #panel .EasyMDEContainer .editor-toolbar.fullscreen,
+  #panel .EasyMDEContainer .CodeMirror-fullscreen {
+    z-index: 60;
   }
 
   #panel .caja-error {

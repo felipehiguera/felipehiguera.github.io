@@ -1,4 +1,6 @@
-﻿/**
+﻿import EasyMDE from "easymde";
+
+/**
  * Lógica del panel de administración.
  *
  * Arquitectura dinámica: D1 es la única fuente de verdad y R2 guarda los
@@ -147,6 +149,14 @@ function pintarLista() {
   const base = document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
   for (const archivo of estadoProyectos) {
     const item = el("li", { class: "fila" });
+    const principal = el("div", { class: "fila-principal" });
+    if (archivo.cover) {
+      const thumb = el("img", { class: "mini", alt: "" }) as HTMLImageElement;
+      const src = archivo.cover;
+      thumb.src = /^https?:\/\//.test(src) ? src : `${base}${src.replace(/^\//, "")}`;
+      thumb.loading = "lazy";
+      principal.append(thumb);
+    }
     const info = el(
       "div",
       { class: "fila-info" },
@@ -170,6 +180,7 @@ function pintarLista() {
     info.append(
       el("span", { class: "tech muted small", textContent: archivo.slug }),
     );
+    principal.append(info);
 
     const acciones = el("div", { class: "fila-acciones" });
     if (!archivo.draft) {
@@ -193,7 +204,7 @@ function pintarLista() {
         onclick: () => confirmarBorrado(archivo),
       }),
     );
-    item.append(info, acciones);
+    item.append(principal, acciones);
     ul.append(item);
   }
 }
@@ -303,17 +314,51 @@ const lista = (v: unknown) => (Array.isArray(v) ? v.map(String).join(", ") : "")
 let planosExistentes: PlanoOk[] = [];
 let planosNuevos: PlanoNuevo[] = [];
 
-/** Muestra la portada actual en el formulario (o la oculta si no hay). */
-function pintarVistaCover(url: string) {
-  const img = $("#cover-vista") as HTMLImageElement;
-  if (url) {
-    const base = document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
-    img.src = /^https?:\/\//.test(url) ? url : `${base}${url.replace(/^\//, "")}`;
+/** URL pública de una portada guardada (/media/...) para mostrarla. */
+function urlCover(url: string): string {
+  if (!url) return "";
+  if (/^https?:\/\//.test(url)) return url;
+  const base = document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
+  return `${base}${url.replace(/^\//, "")}`;
+}
+
+/** Refresca la mini card de vista previa con lo que hay en el formulario. */
+function actualizarVistaCard() {
+  const form = $("#editor") as HTMLFormElement;
+  const campos = form.elements as Campos;
+  const titulo = campos.title.value.trim() || "Título del proyecto";
+  const resumen = campos.summary.value.trim() || "Resumen de una o dos líneas.";
+  const fecha = campos.date.value;
+  const categoria = campos.category.value;
+  const cover = campos.cover.value.trim();
+
+  const img = $("#vista-card-img") as HTMLImageElement;
+  const src = urlCover(cover);
+  if (src) {
+    img.src = src;
+    img.alt = `Portada de ${titulo}`;
     img.hidden = false;
   } else {
     img.removeAttribute("src");
     img.hidden = true;
   }
+  $("#vista-card-meta").textContent =
+    `${ETIQUETAS[categoria] ?? categoria}${fecha ? ` · ${fecha.slice(0, 7)}` : ""}`;
+  $("#vista-card-titulo").textContent = titulo;
+  $("#vista-card-resumen").textContent = resumen;
+}
+
+/** Muestra la portada actual en el formulario (o la oculta si no hay). */
+function pintarVistaCover(url: string) {
+  const img = $("#cover-vista") as HTMLImageElement;
+  if (url) {
+    img.src = urlCover(url);
+    img.hidden = false;
+  } else {
+    img.removeAttribute("src");
+    img.hidden = true;
+  }
+  actualizarVistaCard();
 }
 
 function pintarPlanos() {
@@ -439,6 +484,20 @@ async function abrirEditor(slug: string | null) {
     };
   }
   document.querySelector("#editor")?.scrollIntoView({ block: "start", behavior: "smooth" });
+
+  // La mini card se actualiza sola con cada tecla.
+  form.oninput = () => actualizarVistaCard();
+  actualizarVistaCard();
+
+  // EasyMDE reemplaza el textarea: al crear toma su contenido inicial; si ya
+  // existe hay que setear por API. Refrescar porque el formulario parte
+  // oculto (CodeMirror mide mal en display:none).
+  if (!editorMDE) {
+    editorMDE = crearEditorMDE(areaTexto());
+  } else {
+    editorMDE.value(areaTexto().value);
+  }
+  editorMDE.codemirror.refresh();
 }
 
 /** Sube un archivo a R2 y devuelve su URL pública (/media/...). */
@@ -594,7 +653,7 @@ async function guardar(evento: Event) {
         cover: cover || null,
         model: model || null,
         planos,
-        body: campos.body.value,
+        body: cuerpoActual(),
       },
     });
     if (!r.ok || !r.slug) throw new Error(r.error ?? "No se pudo guardar");
@@ -642,6 +701,48 @@ async function confirmarBorrado(archivo: Archivo) {
   } catch (e) {
     aviso(e instanceof Error ? e.message : "No se pudo borrar", "error");
   }
+}
+
+/** Instancia única del editor Markdown (se crea al abrir el formulario). */
+let editorMDE: EasyMDE | null = null;
+
+function boton(
+  nombre: string,
+  accion: (editor: EasyMDE) => void,
+  icono: string,
+  titulo: string,
+) {
+  return { name: nombre, action: accion, className: icono, title: titulo };
+}
+
+/** Barra en español: lo esencial para escribir un caso bien. */
+function crearEditorMDE(area: HTMLTextAreaElement): EasyMDE {
+  return new EasyMDE({
+    element: area,
+    spellChecker: false,
+    status: false,
+    placeholder: "Contá el caso: contexto, proceso, normativa, software, entregable, resultado…",
+    maxHeight: "24rem",
+    toolbar: [
+      boton("negrita", EasyMDE.toggleBold, "fa-solid fa-bold", "Negrita (Ctrl+B)"),
+      boton("cursiva", EasyMDE.toggleItalic, "fa-solid fa-italic", "Cursiva (Ctrl+I)"),
+      boton("titulo", EasyMDE.toggleHeadingSmaller, "fa-solid fa-heading", "Título"),
+      boton("cita", EasyMDE.toggleBlockquote, "fa-solid fa-quote-left", "Cita"),
+      boton("lista", EasyMDE.toggleUnorderedList, "fa-solid fa-list-ul", "Lista"),
+      boton("numerada", EasyMDE.toggleOrderedList, "fa-solid fa-list-ol", "Lista numerada"),
+      boton("enlace", EasyMDE.drawLink, "fa-solid fa-link", "Enlace (Ctrl+K)"),
+      boton("imagen", EasyMDE.drawImage, "fa-solid fa-image", "Imagen (pega la URL)"),
+      boton("tabla", EasyMDE.drawTable, "fa-solid fa-table", "Tabla"),
+      boton("vista", EasyMDE.togglePreview, "fa-solid fa-eye", "Vista previa"),
+      boton("lado", EasyMDE.toggleSideBySide, "fa-solid fa-columns", "Lado a lado"),
+      boton("pantalla", EasyMDE.toggleFullScreen, "fa-solid fa-expand", "Pantalla completa"),
+    ],
+  });
+}
+
+function cuerpoActual(): string {
+  if (editorMDE) return editorMDE.value();
+  return areaTexto().value;
 }
 
 // ----------------------------------------------------------------- arranque
