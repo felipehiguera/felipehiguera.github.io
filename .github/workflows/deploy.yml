@@ -73,6 +73,8 @@ jobs:
 
       - name: Smoke tests
         # 30s para que el edge propague el deploy antes de medir.
+        env:
+          SMOKE_BYPASS: ${{ secrets.SMOKE_BYPASS }}
         run: |
           sleep 30
           node tests/smoke.mjs

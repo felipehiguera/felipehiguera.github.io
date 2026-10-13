@@ -15,6 +15,11 @@ const UA = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
 };
+// Bypass del rate limiting para CI (regla WAF Skip). En local no existe y
+// los tests corren igual, solo más expuestos al rate limit.
+const BYPASS = process.env.SMOKE_BYPASS
+  ? { "X-Smoke": process.env.SMOKE_BYPASS }
+  : {};
 
 const fallos = [];
 let checks = 0;
@@ -28,7 +33,7 @@ function ok(cond, nombre, detalle = "") {
 async function get(path, opts = {}) {
   const t0 = performance.now();
   const r = await fetch(`${BASE}${path}`, {
-    headers: UA,
+    headers: { ...UA, ...BYPASS },
     redirect: "manual",
     ...opts,
   });
@@ -105,7 +110,7 @@ console.log("Funcionales:");
   const t0 = performance.now();
   const ra = await fetch(`${RAIZ}/admin/api`, {
     method: "POST",
-    headers: { ...UA, "Content-Type": "application/json" },
+    headers: { ...UA, ...BYPASS, "Content-Type": "application/json" },
     body: "{}",
     redirect: "manual",
   });
@@ -131,7 +136,7 @@ console.log("No funcionales:");
   // El caché edge responde HIT en la segunda pasada.
   await get("/portafolio/");
   const t0 = performance.now();
-  const r = await fetch(`${RAIZ}/`, { headers: UA });
+  const r = await fetch(`${RAIZ}/`, { headers: { ...UA, ...BYPASS } });
   await r.text();
   void performance.now() - t0;
   ok(r.headers.get("x-cache") === "HIT", "edge cache con HIT en 2da pasada");
