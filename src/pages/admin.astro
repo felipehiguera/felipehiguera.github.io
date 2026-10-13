@@ -22,6 +22,9 @@ import "@fortawesome/fontawesome-free/css/solid.min.css";
  * no hay que abrir nada para saberlos.
  */
 const base = baseUrl();
+// Modo embed (?embed=1): el admin vive dentro de un iframe en la página del
+// proyecto. Se muestra solo el editor, sin lista ni secciones.
+const embed = Astro.url.searchParams.has("embed");
 ---
 
 <Base
@@ -37,31 +40,35 @@ const base = baseUrl();
 
     <div id="aviso" class="mt-4" role="status" hidden></div>
 
-    <section id="panel" class="mt-8" data-base={base}>
+    <section id="panel" class="mt-8" data-base={base} data-embed={embed ? "1" : undefined}>
       <p class="tech text-xs muted">
         Protegido por Cloudflare Access. Guardar escribe en el repo y dispara
         el deploy: el sitio se actualiza solo en ~1 minuto.
       </p>
 
-      <div class="mt-8">
-        <h2 class="text-lg font-semibold">Secciones visibles</h2>
-        <p class="text-sm muted">
-          Apagan el link del menú y el módulo del home. La ruta directa sigue
-          respondiendo.
-        </p>
-        <div id="secciones" class="mt-3 grid gap-2"></div>
-      </div>
-
-      <div class="mt-10">
-        <div class="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 class="text-lg font-semibold">Proyectos</h2>
-          <button id="nuevo-proyecto" type="button" class="btn btn-icono">
-            <Icono nombre="mas" /> Nuevo proyecto
-          </button>
+      {!embed && (
+        <div class="mt-8">
+          <h2 class="text-lg font-semibold">Secciones visibles</h2>
+          <p class="text-sm muted">
+            Apagan el link del menú y el módulo del home. La ruta directa sigue
+            respondiendo.
+          </p>
+          <div id="secciones" class="mt-3 grid gap-2"></div>
         </div>
-        <p id="resumen" class="tech mt-2 text-xs muted"></p>
-        <ul id="lista" class="mt-3 grid gap-3"></ul>
-      </div>
+      )}
+
+      {!embed && (
+        <div class="mt-10">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 class="text-lg font-semibold">Proyectos</h2>
+            <button id="nuevo-proyecto" type="button" class="btn btn-icono">
+              <Icono nombre="mas" /> Nuevo proyecto
+            </button>
+          </div>
+          <p id="resumen" class="tech mt-2 text-xs muted"></p>
+          <ul id="lista" class="mt-3 grid gap-3"></ul>
+        </div>
+      )}
 
       <form id="editor" hidden class="mt-10" novalidate>
         <div class="tarjeta">

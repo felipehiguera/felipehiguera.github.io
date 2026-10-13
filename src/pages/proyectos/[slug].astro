@@ -4,6 +4,7 @@ import ModelViewer from "../../components/ModelViewer.astro";
 import PlaceholderMarco from "../../components/PlaceholderMarco.astro";
 import PlanoEmbed from "../../components/PlanoEmbed.astro";
 import SpecList from "../../components/SpecList.astro";
+import Icono from "../../components/Icono.astro";
 import {
   cuerpoAHtml,
   etiquetaCategoria,
@@ -141,63 +142,27 @@ const html = cuerpoAHtml(data.body);
     probe revela el botón con sesión, y Access frena todo lo demás.
   */}
   <button type="button" id="er-abrir" class="er-flotante" hidden>
-    ✎ Editar
+    <Icono nombre="lapiz" /> Editar
   </button>
-  <div id="er-velo" class="er-velo" hidden></div>
-  <aside
-    id="er-panel"
-    class="er-panel"
-    hidden
-    aria-label="Edición rápida del proyecto"
-  >
-    <h2 class="text-lg font-bold">Edición rápida</h2>
-    <label>
-      Título
-      <input id="er-title" type="text" autocomplete="off" />
-    </label>
-    <label>
-      Resumen
-      <input id="er-summary" type="text" autocomplete="off" />
-    </label>
-    <label>
-      Fecha
-      <input id="er-date" type="date" />
-    </label>
-    <label>
-      Categoría
-      <select id="er-category">
-        <option value="dibujo-tecnico">Dibujo técnico</option>
-        <option value="cad-cam">CAD/CAM</option>
-        <option value="soporte-it">Soporte IT</option>
-      </select>
-    </label>
-    <label class="er-check">
-      <input id="er-featured" type="checkbox" />
-      Destacado en el home
-    </label>
-    <label class="er-check">
-      <input id="er-draft" type="checkbox" />
-      Borrador (oculto y sin ruta)
-    </label>
-    <div>
-      <span class="text-sm font-semibold">Portada</span>
-      <img id="er-vista" class="er-vista mt-2" alt="" hidden />
-      <input id="er-file" type="file" accept="image/*" class="mt-2 text-sm" />
+  {/*
+    Editor completo en modal: iframe al /admin con modo embed (sin lista ni
+    secciones, abre el editor directo). Cero duplicación: es el mismo
+    formulario, así que toda mejora futura aparece acá sola.
+  */}
+  <div id="er-modal" hidden>
+    <div id="er-velo" class="er-velo"></div>
+    <div class="er-modal" role="dialog" aria-modal="true" aria-label="Editar proyecto">
+      <div class="er-modal-barra">
+        <strong>Editar proyecto</strong>
+        <button type="button" id="er-cerrar" class="er-btn">Cerrar ✕</button>
+      </div>
+      <iframe
+        id="er-frame"
+        title="Editor del proyecto"
+        loading="lazy"
+      ></iframe>
     </div>
-    <p id="er-estado" class="er-estado" role="status"></p>
-    <div class="er-fila">
-      <button type="button" id="er-guardar" class="er-btn primario">
-        Guardar
-      </button>
-      <button type="button" id="er-cancelar" class="er-btn">
-        Cancelar
-      </button>
-    </div>
-    <p class="text-xs" style="color: var(--muted)">
-      Para el texto completo, planos y modelo, usá el
-      <a href={`${base}admin/`}>editor completo</a>.
-    </p>
-  </aside>
+  </div>
 </Base>
 
 <style>
@@ -245,298 +210,147 @@ const html = cuerpoAHtml(data.body);
     }
   }
 
+  .er-flotante {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
   .er-velo {
     position: fixed;
     inset: 0;
     z-index: 40;
-    background: rgb(0 0 0 / 0.4);
+    background: rgb(0 0 0 / 0.6);
   }
 
-  .er-panel {
+  /* Modal con el editor completo adentro (iframe al /admin en modo embed).
+     En mobile ocupa casi todo; en desktop, ventana centrada. */
+  #er-modal[hidden] {
+    display: none;
+  }
+
+  .er-modal {
     position: fixed;
     z-index: 41;
-    background: var(--bg);
-    color: var(--fg);
-    border: 1px solid var(--line);
-    padding: 1.25rem;
+    inset: 0;
     display: grid;
-    gap: 0.8rem;
-    overflow-y: auto;
-    inset: auto 0 0 0;
-    max-height: 92svh;
-    border-radius: 0.75rem 0.75rem 0 0;
+    grid-template-rows: auto 1fr;
+    padding: 4svh 1rem 1rem;
+    pointer-events: none;
   }
 
   @media (min-width: 640px) {
-    .er-panel {
-      inset: 0 0 0 auto;
-      width: min(26rem, 92vw);
-      max-height: none;
-      border-radius: 0;
-      border-top: 0;
-      border-right: 0;
-      border-bottom: 0;
+    .er-modal {
+      padding: 5svh 2rem 2rem;
     }
   }
 
-  .er-panel label {
-    display: grid;
-    gap: 0.25rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-  }
-
-  .er-panel input:not([type="checkbox"]):not([type="file"]),
-  .er-panel select {
-    width: 100%;
-    border: 1px solid var(--line);
+  .er-modal-barra {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
     background: var(--bg);
     color: var(--fg);
-    padding: 0.5rem 0.65rem;
-    border-radius: 0.375rem;
-    font: inherit;
-    font-weight: 400;
-  }
-
-  .er-panel input[type="checkbox"] {
-    width: 1.25rem;
-    height: 1.25rem;
-    accent-color: var(--accent);
-  }
-
-  .er-check {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center;
-    gap: 0.6rem;
-    font-weight: 400 !important;
-  }
-
-  .er-vista {
-    width: 100%;
-    height: auto;
     border: 1px solid var(--line);
-    border-radius: 0.375rem;
+    border-bottom: 0;
+    border-radius: 0.75rem 0.75rem 0 0;
+    padding: 0.7rem 1rem;
+    max-width: 56rem;
+    width: 100%;
+    margin: 0 auto;
   }
 
-  .er-fila {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-    align-items: center;
+  .er-modal iframe {
+    pointer-events: auto;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 0 0 0.75rem 0.75rem;
+    width: 100%;
+    max-width: 56rem;
+    margin: 0 auto;
+    height: 100%;
+    min-height: 0;
   }
 
   .er-btn {
     border: 1px solid var(--line);
     background: var(--bg);
     color: var(--accent-ink);
-    padding: 0.55rem 1.1rem;
+    padding: 0.45rem 0.9rem;
     border-radius: 0.375rem;
     font: inherit;
     cursor: pointer;
-    min-height: 2.75rem;
   }
 
-  .er-btn.primario {
-    background: var(--accent);
+  .er-btn:hover {
     border-color: var(--accent);
-    color: #fff;
-    font-weight: 600;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    .er-btn.primario {
-      color: #101418;
-    }
-  }
-
-  .er-btn:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-
-  .er-estado {
-    font-size: 0.8rem;
-    color: var(--muted);
-  }
-
-  .er-estado.error {
-    color: #b3261e;
   }
 </style>
 
-<script define:vars={{ adminUrl: `${base}admin/`, slug: data.slug, apiUrl: `${base}admin/api` }}>
+<script define:vars={{ adminUrl: `${base}admin/`, slug: data.slug }}>
   (function () {
     var link = document.getElementById("editar-proyecto");
     var flotante = document.getElementById("er-abrir");
-    var panel = document.getElementById("er-panel");
+    var modal = document.getElementById("er-modal");
     var velo = document.getElementById("er-velo");
-    var estado = document.getElementById("er-estado");
-    var guardarBtn = document.getElementById("er-guardar");
-    var actual = null;
-
-    function mostrar(v) {
-      panel.hidden = !v;
-      velo.hidden = !v;
-    }
-
-    function api(accion, extra) {
-      return fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(Object.assign({ accion: accion }, extra)),
-      }).then(function (r) {
-        return r.json();
-      });
-    }
-
-    function vistaCover(url) {
-      var img = document.getElementById("er-vista");
-      if (url) {
-        img.src = url;
-        img.hidden = false;
-      } else {
-        img.removeAttribute("src");
-        img.hidden = true;
-      }
-    }
+    var frame = document.getElementById("er-frame");
+    var cargado = false;
 
     function abrir() {
-      estado.textContent = "Cargando…";
-      estado.className = "er-estado";
-      mostrar(true);
-      api("proyectos.leer", { slug: slug }).then(
-        function (r) {
-          if (!r.ok || !r.proyecto) throw new Error(r.error || "No se pudo leer");
-          actual = r.proyecto;
-          document.getElementById("er-title").value = actual.title || "";
-          document.getElementById("er-summary").value = actual.summary || "";
-          document.getElementById("er-date").value = (actual.date || "").slice(0, 10);
-          document.getElementById("er-category").value = actual.category || "dibujo-tecnico";
-          document.getElementById("er-featured").checked = !!actual.featured;
-          document.getElementById("er-draft").checked = !!actual.draft;
-          vistaCover(actual.cover);
-          estado.textContent = "";
-        },
-        function (e) {
-          estado.textContent = e.message || "No se pudo cargar";
-          estado.className = "er-estado error";
-        },
-      );
+      if (!cargado) {
+        // Lazy: el editor (con EasyMDE) baja solo cuando se va a usar.
+        frame.src =
+          adminUrl + "?editar=" + encodeURIComponent(slug) + "&embed=1";
+        cargado = true;
+      }
+      modal.hidden = false;
+      document.body.style.overflow = "hidden";
     }
 
-    function achicar(file) {
-      return new Promise(function (res, rej) {
-        var img = new Image();
-        var url = URL.createObjectURL(file);
-        img.onload = function () {
-          URL.revokeObjectURL(url);
-          var escala = Math.min(1, 1600 / Math.max(img.width, img.height));
-          var c = document.createElement("canvas");
-          c.width = Math.max(1, Math.round(img.width * escala));
-          c.height = Math.max(1, Math.round(img.height * escala));
-          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-          var d = c.toDataURL("image/webp", 0.82);
-          if (d.indexOf("data:image/webp") !== 0) rej(new Error("No se pudo convertir"));
-          else res(d.split(",")[1]);
-        };
-        img.onerror = function () {
-          URL.revokeObjectURL(url);
-          rej(new Error("Archivo no legible"));
-        };
-        img.src = url;
+    function cerrar() {
+      modal.hidden = true;
+      document.body.style.overflow = "";
+    }
+
+    // El link superior abre el mismo modal en vez de navegar al admin
+    // (si el JS falla, el href sigue llevando al editor completo).
+    if (link) {
+      link.addEventListener("click", function (e) {
+        e.preventDefault();
+        abrir();
       });
     }
-
-    function guardar() {
-      if (!actual) return;
-      guardarBtn.disabled = true;
-      estado.textContent = "Guardando…";
-      estado.className = "er-estado";
-
-      var file = document.getElementById("er-file").files[0];
-      var trabajo = Promise.resolve(null);
-      if (file) {
-        estado.textContent = "Subiendo portada…";
-        trabajo = achicar(file).then(function (b64) {
-          return api("media.subir", {
-            tipo: "portada",
-            slug: actual.slug,
-            nombre: file.name,
-            base64: b64,
-          }).then(function (r) {
-            if (!r.ok || !r.url) throw new Error(r.error || "No se pudo subir");
-            return r.url;
-          });
-        });
-      }
-
-      trabajo.then(
-        function (cover) {
-          var body = {
-            slug: actual.slug,
-            slugOriginal: actual.slug,
-            title: document.getElementById("er-title").value.trim(),
-            summary: document.getElementById("er-summary").value.trim(),
-            date: document.getElementById("er-date").value,
-            category: document.getElementById("er-category").value,
-            featured: document.getElementById("er-featured").checked,
-            draft: document.getElementById("er-draft").checked,
-            confidential: actual.confidential,
-            software: actual.software,
-            normativa: actual.normativa,
-            cover: cover || actual.cover,
-            model: actual.model,
-            planos: actual.planos,
-            body: actual.body,
-          };
-          if (!body.title) throw new Error("Falta el título");
-          estado.textContent = "Guardando…";
-          return api("proyectos.guardar", { proyecto: body });
-        },
-      ).then(
-        function (r) {
-          if (!r.ok) throw new Error(r.error || "No se pudo guardar");
-          estado.textContent = "Listo, recargando…";
-          // Recarga evitando el caché edge para ver los cambios al tiro.
-          fetch(location.href.split("?")[0], {
-            headers: { "Cache-Control": "no-cache" },
-          }).finally(function () {
-            location.reload();
-          });
-        },
-        function (e) {
-          guardarBtn.disabled = false;
-          estado.textContent = e.message || "No se pudo guardar";
-          estado.className = "er-estado error";
-        },
-      );
-    }
-
     if (flotante) flotante.addEventListener("click", abrir);
-    if (guardarBtn) guardarBtn.addEventListener("click", guardar);
-    // El link superior abre el mismo panel en vez de navegar al admin
-    // (si el JS falla, el href sigue llevando al editor completo).
-    link.addEventListener("click", function (e) {
-      e.preventDefault();
-      abrir();
+    document.getElementById("er-cerrar").addEventListener("click", cerrar);
+    velo.addEventListener("click", cerrar);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !modal.hidden) cerrar();
     });
-    document.getElementById("er-cancelar").addEventListener("click", function () {
-      mostrar(false);
-    });
-    velo.addEventListener("click", function () {
-      mostrar(false);
+
+    // El iframe avisa al guardar: se regenera sin caché y se recarga.
+    window.addEventListener("message", function (e) {
+      if (e.origin !== location.origin) return;
+      if (!e.data || e.data.tipo !== "proyecto-guardado") return;
+      fetch(location.href.split("?")[0], {
+        headers: { "Cache-Control": "no-cache" },
+      }).finally(function () {
+        location.reload();
+      });
     });
 
     // El probe revela el link y el botón solo con sesión de Access.
     fetch(adminUrl, { redirect: "manual" }).then(
       function (r) {
         if (r.status === 200) {
-          link.hidden = false;
-          flotante.hidden = false;
+          if (link) link.hidden = false;
+          if (flotante) flotante.hidden = false;
         }
       },
       function () {},
     );
   })();
 </script>
+
+

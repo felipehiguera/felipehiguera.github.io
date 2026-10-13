@@ -133,6 +133,7 @@ const ETIQUETAS: Record<string, string> = {
 };
 
 function pintarLista() {
+  if (!document.getElementById("lista")) return;
   const ul = $("#lista");
   ul.replaceChildren();
 
@@ -210,6 +211,7 @@ function pintarLista() {
 }
 
 function pintarSecciones() {
+  if (!document.getElementById("secciones")) return;
   const contenedor = $("#secciones");
   contenedor.replaceChildren();
 
@@ -250,11 +252,14 @@ async function refrescar() {
   const total = estadoProyectos.length;
   const borradores = estadoProyectos.filter((a) => a.draft).length;
   const destacados = estadoProyectos.filter((a) => a.featured).length;
-  $("#resumen").textContent =
-    `${total} proyecto${total === 1 ? "" : "s"} · ` +
-    `${total - borradores} publicado${total - borradores === 1 ? "" : "s"} · ` +
-    `${borradores} borrador${borradores === 1 ? "" : "es"} · ` +
-    `${destacados} destacado${destacados === 1 ? "" : "s"}`;
+  const resumen = document.getElementById("resumen");
+  if (resumen) {
+    resumen.textContent =
+      `${total} proyecto${total === 1 ? "" : "s"} · ` +
+      `${total - borradores} publicado${total - borradores === 1 ? "" : "s"} · ` +
+      `${borradores} borrador${borradores === 1 ? "" : "es"} · ` +
+      `${destacados} destacado${destacados === 1 ? "" : "s"}`;
+  }
 
   pintarLista();
   pintarSecciones();
@@ -711,6 +716,10 @@ async function guardar(evento: Event) {
       ver.hidden = true;
     }
     mostrar("exito", true);
+    // En embed, la página madre recarga al recibir el aviso.
+    if (new URLSearchParams(window.location.search).has("embed")) {
+      window.parent.postMessage({ tipo: "proyecto-guardado" }, window.location.origin);
+    }
     document.querySelector("#exito")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 
     await refrescar();
@@ -789,7 +798,8 @@ function cuerpoActual(): string {
 document.addEventListener("DOMContentLoaded", () => {
   // Sin login en el cliente: Cloudflare Access ya autenticó antes de servir
   // esta página. Si el Worker responde 401, falta configurar Access.
-  $("#nuevo-proyecto").addEventListener("click", () => abrirEditor(null));
+  // En modo embed no hay lista ni botón nuevo: solo el editor.
+  document.querySelector("#nuevo-proyecto")?.addEventListener("click", () => abrirEditor(null));
   $("#cancelar").addEventListener("click", () => mostrar("editor", false));
   $("#exito-seguir").addEventListener("click", () => mostrar("exito", false));
   $("#exito-cerrar").addEventListener("click", () => {
