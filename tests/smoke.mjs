@@ -78,6 +78,15 @@ console.log("Funcionales:");
     if (path.includes("/proyectos/") && path !== "/portafolio/proyectos/") {
       ok(tt.includes("<h1"), `sitemap: ${path} tiene h1`);
       ok(tt.includes("<time"), `sitemap: ${path} tiene time`);
+      // Modal de edición: markup + puente con el iframe (sin esto el botón
+      // Editar no abre nada).
+      ok(tt.includes('id="er-modal"'), `sitemap: ${path} tiene modal de edición`);
+      ok(tt.includes('id="er-frame"'), `sitemap: ${path} tiene iframe de edición`);
+      ok(tt.includes("embed=1"), `sitemap: ${path} apunta al admin en modo embed`);
+      ok(
+        tt.includes("proyecto-guardado"),
+        `sitemap: ${path} escucha el guardado del iframe`,
+      );
     }
   }
 }
