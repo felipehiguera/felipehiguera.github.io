@@ -247,6 +247,13 @@ async function refrescar() {
 
   pintarLista();
   pintarSecciones();
+
+  // Deep link desde "Editar este proyecto": ?editar=<slug> abre el editor
+  // directo después de cargar la lista.
+  const editar = new URLSearchParams(window.location.search).get("editar");
+  if (editar && estadoProyectos.some((a) => a.slug === editar)) {
+    void abrirEditor(editar);
+  }
 }
 
 // ------------------------------------------------------------------ editor

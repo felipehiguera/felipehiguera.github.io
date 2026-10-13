@@ -44,8 +44,20 @@ const html = cuerpoAHtml(data.body);
     class="mx-auto max-w-4xl px-4 py-10"
     aria-labelledby="titulo-proyecto"
   >
-    <p>
+    <p class="flex flex-wrap items-center justify-between gap-2">
       <a href={`${base}proyectos`}>← Volver a proyectos</a>
+      {/*
+        Solo visible con sesión de Access: el probe de abajo lo revela si el
+        navegador pasa a /admin. Es el atajo "editar mientras veo mis posts".
+      */}
+      <a
+        href={`${base}admin/?editar=${data.slug}`}
+        id="editar-proyecto"
+        class="admin-editar"
+        hidden
+      >
+        Editar este proyecto →
+      </a>
     </p>
     {
       data.confidential && (
@@ -134,4 +146,29 @@ const html = cuerpoAHtml(data.body);
   .prose :global(p) {
     margin-top: 0.75rem;
   }
+
+  .admin-editar {
+    border: 1px solid var(--line);
+    border-radius: 0.25rem;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+
+  .admin-editar:hover {
+    border-color: var(--accent);
+  }
 </style>
+
+<script define:vars={{ adminUrl: `${base}admin/` }}>
+  (function () {
+    var link = document.getElementById("editar-proyecto");
+    if (!link) return;
+    fetch(adminUrl, { redirect: "manual" }).then(
+      function (r) {
+        if (r.status === 200) link.hidden = false;
+      },
+      function () {},
+    );
+  })();
+</script>
