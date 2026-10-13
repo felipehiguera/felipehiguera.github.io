@@ -348,6 +348,32 @@ function actualizarVistaCard() {
   $("#vista-card-resumen").textContent = resumen;
 }
 
+/** Llena el modal de vista previa con lo que hay en el formulario. */
+function abrirVistaPrevia() {
+  actualizarVistaCard();
+  const tomar = (id: string) =>
+    document.querySelector(`#${id}`)?.textContent ?? "";
+  const imgModal = $("#vista-modal-img") as HTMLImageElement;
+  const imgMini = $("#vista-card-img") as HTMLImageElement;
+  if (!imgMini.hidden && imgMini.src) {
+    imgModal.src = imgMini.src;
+    imgModal.alt = imgMini.alt;
+    imgModal.hidden = false;
+  } else {
+    imgModal.removeAttribute("src");
+    imgModal.hidden = true;
+  }
+  $("#vista-modal-meta").textContent = tomar("vista-card-meta");
+  $("#vista-modal-titulo").textContent = tomar("vista-card-titulo");
+  $("#vista-modal-resumen").textContent = tomar("vista-card-resumen");
+  mostrar("vista-modal", true);
+  (document.querySelector("#vista-cerrar") as HTMLButtonElement).focus();
+}
+
+function cerrarVistaPrevia() {
+  mostrar("vista-modal", false);
+}
+
 /** Muestra la portada actual en el formulario (o la oculta si no hay). */
 function pintarVistaCover(url: string) {
   const img = $("#cover-vista") as HTMLImageElement;
@@ -711,6 +737,11 @@ async function confirmarBorrado(archivo: Archivo) {
   }
 }
 
+/** Textarea del cuerpo (EasyMDE lo reemplaza visualmente, pero sigue ahí). */
+function areaTexto(): HTMLTextAreaElement {
+  return document.querySelector('[name="body"]') as HTMLTextAreaElement;
+}
+
 /** Instancia única del editor Markdown (se crea al abrir el formulario). */
 let editorMDE: EasyMDE | null = null;
 
@@ -766,6 +797,12 @@ document.addEventListener("DOMContentLoaded", () => {
     mostrar("editor", false);
   });
   $("#editor").addEventListener("submit", guardar);
+  $("#vista-previa").addEventListener("click", abrirVistaPrevia);
+  $("#vista-cerrar").addEventListener("click", cerrarVistaPrevia);
+  $("#vista-velo").addEventListener("click", cerrarVistaPrevia);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !$("#vista-modal").hidden) cerrarVistaPrevia();
+  });
   $("#plano-agregar")?.addEventListener("click", () => {
     const titulo = (
       document.querySelector("#plano-titulo") as HTMLInputElement

@@ -298,6 +298,9 @@ const base = baseUrl();
             <button id="guardar" type="submit" class="btn primario btn-icono">
               <Icono nombre="guardar" /> Guardar proyecto
             </button>
+            <button id="vista-previa" type="button" class="btn btn-icono">
+              <Icono nombre="ver" /> Vista previa
+            </button>
             <button id="cancelar" type="button" class="btn">Cancelar</button>
             <span id="guardando" class="tech text-xs muted" hidden>
               Guardando…
@@ -309,7 +312,7 @@ const base = baseUrl();
       <div id="exito" class="caja-exito" hidden>
         <p class="font-semibold">Guardado.</p>
         <p class="mt-1 text-sm">
-          El sitio se actualiza solo en ~1 minuto.
+          Ya está visible en el sitio.
           <a id="exito-ver" href="#" target="_blank" rel="noopener" hidden>
             Ver página →
           </a>
@@ -319,6 +322,30 @@ const base = baseUrl();
             Seguir editando
           </button>
           <button id="exito-cerrar" type="button" class="btn">Cerrar</button>
+        </div>
+      </div>
+
+      {/*
+        Vista previa en modal: la card sobre fondo oscuro, como pide el
+        cliente. Se llena con lo del formulario al abrir.
+      */}
+      <div id="vista-modal" hidden>
+        <div id="vista-velo" class="vista-velo"></div>
+        <div
+          class="vista-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Vista previa del proyecto"
+        >
+          <article class="vista-card grande">
+            <img id="vista-modal-img" alt="" hidden />
+            <p id="vista-modal-meta" class="tech"></p>
+            <h3 id="vista-modal-titulo"></h3>
+            <p id="vista-modal-resumen"></p>
+          </article>
+          <button id="vista-cerrar" type="button" class="btn">
+            Cerrar vista previa
+          </button>
         </div>
       </div>
     </section>
@@ -530,6 +557,44 @@ const base = baseUrl();
 
   #panel .vista-card p:last-child {
     color: var(--fg);
+  }
+
+  /* Modal de vista previa: card sobre fondo oscuro. */
+  #panel #vista-modal[hidden] {
+    display: none;
+  }
+
+  #panel .vista-velo {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgb(0 0 0 / 0.6);
+  }
+
+  #panel .vista-modal {
+    position: fixed;
+    z-index: 41;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 1rem;
+    padding: 1rem;
+    pointer-events: none;
+  }
+
+  #panel .vista-modal .vista-card.grande {
+    pointer-events: auto;
+    background: var(--bg);
+    max-width: 28rem;
+    width: 100%;
+    max-height: 80svh;
+    overflow-y: auto;
+  }
+
+  #panel .vista-modal .btn {
+    pointer-events: auto;
+    background: var(--bg);
   }
 
   #panel .mini {
