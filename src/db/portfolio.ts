@@ -143,8 +143,8 @@ export function fechaCorta(fechaIso: string): string {
 }
 
 /**
- * Binding D1 desde el runtime del Worker. En Astro 6+ no existe
- * `Astro.locals.runtime.env`: se importa `env` de `cloudflare:workers`.
+ * Binding D1 desde el runtime del Worker.
+ * Doc oficial: `import { env } from "cloudflare:workers"`.
  */
 export function getDB(): D1Database {
   const db = (env as unknown as { DB?: unknown }).DB;
@@ -160,6 +160,18 @@ export function getBucket(): R2Bucket {
     throw new Error("Sin binding R2: falta MEDIA en el Worker del portfolio.");
   }
   return bucket as R2Bucket;
+}
+
+/**
+ * `waitUntil` del request actual.
+ * Doc oficial: `Astro.locals.cfContext` es el ExecutionContext.
+ */
+export function getWaitUntil(locals: unknown): ((p: Promise<unknown>) => void) | undefined {
+  const cf = (locals as { cfContext?: unknown }).cfContext;
+  if (!cf || typeof cf !== "object") return undefined;
+  const w = (cf as { waitUntil?: unknown }).waitUntil;
+  if (typeof w !== "function") return undefined;
+  return (w as (p: Promise<unknown>) => void).bind(cf);
 }
 
 /** Markdown del cuerpo -> HTML. El contenido lo escribe un admin (confiable). */

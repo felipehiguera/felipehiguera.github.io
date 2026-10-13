@@ -1,4 +1,5 @@
 import { defineMiddleware } from "astro:middleware";
+import { getWaitUntil } from "./db/portfolio";
 
 /**
  * Filtro de scrapers en el edge.
@@ -23,16 +24,6 @@ const esCacheable = (req: Request): boolean => {
   // El admin nunca se cachea (contenido por sesión) ni la API.
   return !pathname.includes("/admin");
 };
-
-type Ctx = { waitUntil?: (p: Promise<unknown>) => void };
-
-function ctxDe(locals: unknown): Ctx | undefined {
-  const runtime = (locals as { runtime?: { ctx?: unknown } }).runtime;
-  if (runtime && typeof runtime.ctx === "object" && runtime.ctx !== null) {
-    return runtime.ctx as Ctx;
-  }
-  return undefined;
-}
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const ua = context.request.headers.get("user-agent") ?? "";
@@ -74,8 +65,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     });
     // Guardar sin frenar la respuesta. Sin ctx (dev), se espera igual.
     const tarea = cache.put(context.request, guardar.clone());
-    const ctx = ctxDe(context.locals);
-    if (ctx?.waitUntil) ctx.waitUntil(tarea);
+    const esperar = getWaitUntil(context.locals);
+    if (esperar) esperar(tarea);
     else await tarea;
     return guardar;
   }
