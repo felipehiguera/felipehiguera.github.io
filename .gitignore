@@ -31,3 +31,6 @@ supabase/.branches
 
 # jetbrains setting folder
 .idea/
+
+# Generado local para la carga inicial a D1
+migration.sql

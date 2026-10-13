@@ -1,33 +1,35 @@
-# Worker admin: única puerta de escritura al repo.
+# Worker admin: única puerta de escritura al portfolio.
 #
-# La API vive bajo /portafolio/admin/api, DENTRO de la app de Access del
-# admin. Así el navegador ya trae la sesión de esa app y el fetch no cruza
-# a otra app (eso mataba el request con "failed to fetch"). Mismo origen,
-# sin CORS ni claves públicas: Cloudflare deriva al Worker y le adjunta el
-# JWT en el header CF-Access-Jwt-Assertion.
+# Arquitectura dinámica: D1 es la única fuente de verdad y R2 guarda los
+# binarios. Ya no hay Git, ni PAT, ni rebuilds: guardar es instantáneo.
+# El navegador llama a /portafolio/admin/api (misma app de Access).
 #
-# Vars no secretas (editar acá):
-#   GITHUB_REPO  = "felipehiguera/felipehiguera.github.io"
-#   ACCESS_TEAM  = tu team, p. ej. "mi-equipo" (sin https://)
-#   ACCESS_AUD   = los dos AUD separados por coma (admin y api):
-#                  Zero Trust -> Access -> cada app -> Overview ->
-#                  Application Audience (AUD) Tag
-#   BRANCH       = "main" (opcional)
+# Primero crear los recursos (una vez):
+#   wrangler d1 create portfolio
+#   wrangler r2 bucket create portfolio-media
+# Después completar database_id acá abajo y aplicar el esquema:
+#   wrangler d1 execute portfolio --file=workers/admin/schema.sql --remote
 #
-# Secreto (SOLO por comando, nunca en este archivo):
-#   wrangler secret put GITHUB_TOKEN
-# El token es un fine-grained PAT con Contents: Read and write,
-# limitado al repo de arriba.
+# Vars no secretas:
+#   ACCESS_TEAM  = tu team (mhiguera)
+#   ACCESS_AUD   = los AUD de las apps, separados por coma
 
 name = "admin"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
 [vars]
-GITHUB_REPO = "felipehiguera/felipehiguera.github.io"
 ACCESS_TEAM = "mhiguera"
 ACCESS_AUD = "82086987de48e659a9a08f64ccf534b0a35c4f8d51901bb731fb3569fbb4b76f,4b40649877e7b007bbdd7335e0c7680e68488cd40ea97ff50ecf1c709093e223"
-BRANCH = "main"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "portfolio"
+database_id = "PONER-DATABASE-ID"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "portfolio-media"
 
 [[routes]]
 pattern = "www.fhiguera.fyi/portafolio/admin/api"
