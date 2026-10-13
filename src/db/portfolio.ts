@@ -1,6 +1,5 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { marked } from "marked";
-import DOMPurify from "isomorphic-dompurify";
 import { env } from "cloudflare:workers";
 
 /**
@@ -176,15 +175,60 @@ export function getWaitUntil(locals: unknown): ((p: Promise<unknown>) => void) |
 }
 
 /** Markdown del cuerpo -> HTML sanitizado. Ni el admin escribe HTML crudo acá:
- *  todo lo que no sea formato Markdown se escapa. */
+ *  todo lo que no sea formato Markdown se escapa.
+ *
+ *  Sanitizador propio y estricto a propósito: en Workers no hay DOM, así que
+ *  las librerías tipo DOMPurify revientan al cargar el módulo (eso tumbó el
+ *  sitio entero). Solo deja pasar las etiquetas que genera el Markdown común,
+ *  con atributos mínimos y URLs seguras (nada de `javascript:` ni event
+ *  handlers). Los autores son admins de confianza; esto es defensa en
+ *  profundidad por si alguna cuenta se compromete.
+ */
+const TAGS_PERMITIDOS = new Set([
+  "h1", "h2", "h3", "h4", "p", "br", "ul", "ol", "li", "blockquote",
+  "pre", "code", "em", "strong", "a", "img", "hr", "table", "thead",
+  "tbody", "tr", "th", "td",
+]);
+
+function urlSegura(url: string): boolean {
+  const u = url.trim().toLowerCase();
+  return (
+    u.startsWith("/") ||
+    u.startsWith("#") ||
+    u.startsWith("http://") ||
+    u.startsWith("https://") ||
+    u.startsWith("mailto:")
+  );
+}
+
+function sanearHtml(sucio: string): string {
+  return sucio.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, (tag, nombre) => {
+    const tagMin = String(nombre).toLowerCase();
+    const cierre = tag.startsWith("</");
+    if (!TAGS_PERMITIDOS.has(tagMin)) {
+      return tag.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    if (cierre) return `</${tagMin}>`;
+    if (tagMin === "a") {
+      const href = tag.match(/href\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i)?.[1] ?? "";
+      const url = href.replace(/^["']|["']$/g, "");
+      // Insegura: se escapa entera (dropearla dejaría su </a> huérfano).
+      if (!urlSegura(url)) return tag.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const titulo = tag.match(/title\s*=\s*("[^"]*"|'[^']*')/i)?.[0] ?? "";
+      return `<a href="${url}"${titulo ? ` ${titulo}` : ""}>`;
+    }
+    if (tagMin === "img") {
+      const src = tag.match(/src\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/i)?.[1] ?? "";
+      const url = src.replace(/^["']|["']$/g, "");
+      if (!urlSegura(url)) return tag.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const alt = tag.match(/alt\s*=\s*("[^"]*"|'[^']*')/i)?.[0] ?? "";
+      return `<img src="${url}"${alt ? ` ${alt}` : ""}>`;
+    }
+    return `<${tagMin}>`;
+  });
+}
+
 export function cuerpoAHtml(markdown: string): string {
   const sucio = marked.parse(markdown, { async: false }) as string;
-  return DOMPurify.sanitize(sucio, {
-    ALLOWED_TAGS: [
-      "h1", "h2", "h3", "h4", "p", "br", "ul", "ol", "li", "blockquote",
-      "pre", "code", "em", "strong", "a", "img", "hr", "table", "thead",
-      "tbody", "tr", "th", "td",
-    ],
-    ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel"],
-  });
+  return sanearHtml(sucio);
 }
