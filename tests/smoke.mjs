@@ -156,6 +156,119 @@ console.log("No funcionales:");
   ok(r.status === 200 && texto.includes("sitemap"), "robots.txt con sitemap");
 }
 
+console.log("SEO y accesibilidad por página:");
+{
+  // Cada URL del sitemap: idioma, título, descripción, canonical, OG, un h1,
+  // skip-link y alts en imágenes.
+  const { texto: sm } = await get("/portafolio/sitemap-index.xml");
+  const locs = [...sm.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  for (const u of locs) {
+    const path = new URL(u).pathname;
+    const { texto: tt } = await get(path);
+    const tag = `seo ${path}`;
+    ok(tt.includes('lang="es-CL"'), `${tag} lang`);
+    const titulo = (tt.match(/<title>([^<]+)<\/title>/) ?? [])[1] ?? "";
+    ok(titulo.length >= 10, `${tag} title`, titulo.slice(0, 40));
+    ok(tt.includes('name="description"'), `${tag} description`);
+    const canon = (tt.match(/rel="canonical" href="([^"]+)"/) ?? [])[1] ?? "";
+    ok(canon.startsWith("https://"), `${tag} canonical absoluta`);
+    ok(tt.includes("og:title"), `${tag} og`);
+    ok((tt.match(/<h1/g) ?? []).length === 1, `${tag} un solo h1`);
+    ok(tt.includes('class="skip-link"'), `${tag} skip-link`);
+    const imgsSinAlt = [...tt.matchAll(/<img(?![^>]*alt=)[^>]*>/g)].length;
+    ok(imgsSinAlt === 0, `${tag} imgs con alt`, `${imgsSinAlt} sin alt`);
+  }
+}
+{
+  // Contacto del footer presente en el home.
+  const { texto } = await get("/portafolio/");
+  ok(texto.includes("mailto:"), "footer con mailto");
+  ok(texto.includes("tel:"), "footer con tel");
+  ok(texto.includes("linkedin.com"), "footer con linkedin");
+}
+console.log("Links internos:");
+{
+  // Crawl: todo href interno de home y proyectos responde 200.
+  const vistos = new Set();
+  const pendientes = ["/portafolio/", "/portafolio/proyectos/"];
+  const malos = [];
+  while (pendientes.length > 0 && vistos.size < 30) {
+    const p = pendientes.shift();
+    if (vistos.has(p)) continue;
+    vistos.add(p);
+    const { r, texto } = await get(p);
+    // /admin sin sesión redirige al login: es lo esperado, no un roto.
+    if (p.startsWith("/portafolio/admin")) {
+      ok(
+        r.status === 302,
+        `admin protegido (${p})`,
+        `fue ${r.status}`,
+      );
+      continue;
+    }
+    if (r.status !== 200) {
+      malos.push(`${p} -> ${r.status}`);
+      continue;
+    }
+    for (const m of texto.matchAll(/href="(\/portafolio\/[^"]*)"/g)) {
+      const href = m[1].split("#")[0].replace(/\/$/, "") || "/portafolio/";
+      if (!vistos.has(href) && !href.match(/\.(pdf|png|ico|glb|webp)$/)) {
+        pendientes.push(href);
+      }
+    }
+  }
+  ok(malos.length === 0, "links internos sin rotos", malos.join("; ").slice(0, 200));
+  ok(vistos.size >= 5, "crawl cubre páginas", `${vistos.size} vistas`);
+}
+console.log("Filtro de bots:");
+{
+  // Sin UA o con UA de librería: 403. Googlebot: pasa.
+  // UA vacío o de librería: 403. Googlebot: pasa. (node manda UA propio por
+  // defecto, así que el caso vacío se fuerza explícito.)
+  const sinUA = await fetch(`${RAIZ}/`, {
+    headers: { "User-Agent": "" },
+    redirect: "manual",
+  });
+  ok(sinUA.status === 403, "sin UA bloqueado", `fue ${sinUA.status}`);
+  const bot = await fetch(`${RAIZ}/`, {
+    headers: { "User-Agent": "python-requests/2.31" },
+    redirect: "manual",
+  });
+  ok(bot.status === 403, "scraper bloqueado", `fue ${bot.status}`);
+  const google = await fetch(`${RAIZ}/`, {
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+    },
+    redirect: "manual",
+  });
+  ok(google.status === 200, "googlebot pasa", `fue ${google.status}`);
+}
+console.log("Caché y assets:");
+{
+  // Bypass con no-cache regenera (MISS) en vez de servir rancio.
+  await get("/portafolio/proyectos/");
+  const r = await fetch(`${RAIZ}/proyectos/`, {
+    headers: { ...UA, "Cache-Control": "no-cache" },
+  });
+  await r.text();
+  ok(r.headers.get("x-cache") === "MISS", "no-cache regenera");
+  // Assets estáticos servidos por el worker.
+  const pdf = await fetch(`${RAIZ}/cv/CV-Felipe-Higuera.pdf`, { headers: UA });
+  await pdf.arrayBuffer();
+  ok(
+    pdf.status === 200 && (pdf.headers.get("content-type") ?? "").includes("pdf"),
+    "PDF del CV servido",
+    `fue ${pdf.status}`,
+  );
+  const og = await fetch(`${RAIZ}/og.png`, { headers: UA });
+  await og.arrayBuffer();
+  ok(og.status === 200, "og:image servida", `fue ${og.status}`);
+  const falta = await fetch(`${RAIZ}/media/no-existe.webp`, { headers: UA });
+  await falta.text();
+  ok(falta.status === 404, "media inexistente da 404", `fue ${falta.status}`);
+}
+
 console.log(`\n${checks - fallos.length}/${checks} checks OK`);
 if (fallos.length > 0) {
   console.error("\nFALLOS:");
