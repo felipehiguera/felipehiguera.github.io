@@ -299,10 +299,18 @@ const html = cuerpoAHtml(data.body);
     var cargado = false;
 
     function abrir() {
-      if (!cargado) {
-        // Lazy: el editor (con EasyMDE) baja solo cuando se va a usar.
-        frame.src =
-          adminUrl + "?editar=" + encodeURIComponent(slug) + "&embed=1";
+      var url = adminUrl + "?editar=" + encodeURIComponent(slug) + "&embed=1";
+      try {
+        // Si ya estaba cargado (se editó y cerró antes), se recarga para que
+        // el editor se abra de nuevo en vez de mostrar el estado viejo.
+        if (cargado && frame.contentWindow) {
+          frame.contentWindow.location.reload();
+        } else {
+          frame.src = url;
+          cargado = true;
+        }
+      } catch (e) {
+        frame.src = url;
         cargado = true;
       }
       modal.hidden = false;
