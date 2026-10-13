@@ -1,5 +1,6 @@
 import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { marked } from "marked";
+import DOMPurify from "isomorphic-dompurify";
 import { env } from "cloudflare:workers";
 
 /**
@@ -174,7 +175,16 @@ export function getWaitUntil(locals: unknown): ((p: Promise<unknown>) => void) |
   return (w as (p: Promise<unknown>) => void).bind(cf);
 }
 
-/** Markdown del cuerpo -> HTML. El contenido lo escribe un admin (confiable). */
+/** Markdown del cuerpo -> HTML sanitizado. Ni el admin escribe HTML crudo acá:
+ *  todo lo que no sea formato Markdown se escapa. */
 export function cuerpoAHtml(markdown: string): string {
-  return marked.parse(markdown, { async: false }) as string;
+  const sucio = marked.parse(markdown, { async: false }) as string;
+  return DOMPurify.sanitize(sucio, {
+    ALLOWED_TAGS: [
+      "h1", "h2", "h3", "h4", "p", "br", "ul", "ol", "li", "blockquote",
+      "pre", "code", "em", "strong", "a", "img", "hr", "table", "thead",
+      "tbody", "tr", "th", "td",
+    ],
+    ALLOWED_ATTR: ["href", "src", "alt", "title", "target", "rel"],
+  });
 }

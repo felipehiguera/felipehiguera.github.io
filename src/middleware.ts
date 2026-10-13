@@ -31,8 +31,32 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return new Response("No disponible", { status: 403 });
   }
 
-  // Sin caché para lo no cacheable: pasa directo.
-  if (!esCacheable(context.request)) return next();
+  const res = await next();
+
+  // Headers de seguridad en toda respuesta del sitio. SAMEORIGIN (no DENY)
+  // porque el modal de edición embebe /admin en iframe del mismo origen.
+  // También sobre HIT de caché: el contenido ya salió de acá.
+  const conSeguras = (r: Response, extras?: Record<string, string>): Response => {
+    const headers = new Headers(r.headers);
+    headers.set("X-Content-Type-Options", "nosniff");
+    headers.set("X-Frame-Options", "SAMEORIGIN");
+    headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    headers.set(
+      "Permissions-Policy",
+      "camera=(), microphone=(), geolocation=(), payment=()",
+    );
+    if (extras) {
+      for (const [k, v] of Object.entries(extras)) headers.set(k, v);
+    }
+    return new Response(r.body, {
+      status: r.status,
+      statusText: r.statusText,
+      headers,
+    });
+  };
+
+  // Sin caché para lo no cacheable: pasa directo, con headers igual.
+  if (!esCacheable(context.request)) return conSeguras(res);
 
   // Hard refresh (Ctrl+Shift+R) regenera: el navegador manda
   // `Cache-Control: no-cache` y eso invalida la entrada guardada. Así, tras
@@ -47,13 +71,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (cached) {
       const vence = Number(cached.headers.get("X-Cache-Expires") ?? 0);
       if (vence > Date.now()) {
-        const headers = new Headers(cached.headers);
-        headers.set("X-Cache", "HIT");
-        return new Response(cached.body, {
-          status: cached.status,
-          statusText: cached.statusText,
-          headers,
-        });
+        return conSeguras(cached, { "X-Cache": "HIT" });
       }
       // Expirado: se sigue y se regenera abajo.
       await cache.delete(context.request);
@@ -62,17 +80,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     await cache.delete(context.request);
   }
 
-  const res = await next();
   const tipo = res.headers.get("content-type") ?? "";
   if (res.ok && tipo.includes("text/html")) {
-    const headers = new Headers(res.headers);
-    headers.set("Cache-Control", `public, max-age=30, s-maxage=${TTL_EDGE}`);
-    headers.set("X-Cache", "MISS");
-    headers.set("X-Cache-Expires", String(Date.now() + TTL_EDGE * 1000));
-    const guardar = new Response(res.body, {
-      status: res.status,
-      statusText: res.statusText,
-      headers,
+    const guardar = conSeguras(res, {
+      "Cache-Control": `public, max-age=30, s-maxage=${TTL_EDGE}`,
+      "X-Cache": "MISS",
+      "X-Cache-Expires": String(Date.now() + TTL_EDGE * 1000),
     });
     // Guardar sin frenar la respuesta. Sin ctx (dev), se espera igual.
     const tarea = cache.put(context.request, guardar.clone());
@@ -81,5 +94,5 @@ export const onRequest = defineMiddleware(async (context, next) => {
     else await tarea;
     return guardar;
   }
-  return res;
+  return conSeguras(res);
 });
