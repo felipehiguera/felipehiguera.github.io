@@ -8,13 +8,13 @@ export const prerender = false;
 
 const ESTATICAS = ["", "proyectos", "cv", "soporte-it"];
 
-export async function GET({ locals, site }: { locals: unknown; site?: URL }) {
+export async function GET({ site }: { site?: URL }) {
   const base = site?.toString().replace(/\/$/, "") ?? "https://www.fhiguera.fyi";
   const prefijo = `${base}/portafolio`;
 
   let slugs: string[] = [];
   try {
-    const proyectos = await listarProyectos(getDB(locals));
+    const proyectos = await listarProyectos(getDB());
     slugs = proyectos.map((p) => p.slug);
   } catch {
     // Sin D1 (dev sin sembrar): sitemap solo con estáticas.

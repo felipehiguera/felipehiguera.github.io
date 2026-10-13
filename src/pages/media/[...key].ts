@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import type { R2Bucket } from "@cloudflare/workers-types";
+import { getBucket } from "../../db/portfolio";
 
 /**
  * Sirve los binarios de R2 bajo /portafolio/media/<clave>.
@@ -10,23 +10,13 @@ import type { R2Bucket } from "@cloudflare/workers-types";
  */
 export const prerender = false;
 
-function getBucket(locals: unknown): R2Bucket {
-  const runtime = (locals as { runtime?: { env?: Record<string, unknown> } })
-    .runtime;
-  const bucket = runtime?.env?.MEDIA;
-  if (!bucket || typeof bucket !== "object" || !("get" in bucket)) {
-    throw new Error("Sin binding R2: falta MEDIA en el Worker del portfolio.");
-  }
-  return bucket as R2Bucket;
-}
-
-export const GET: APIRoute = async ({ params, locals }) => {
+export const GET: APIRoute = async ({ params }) => {
   const key = params.key ?? "";
   if (!key || key.includes("..") || key.startsWith("/")) {
     return new Response("No encontrado", { status: 404 });
   }
 
-  const obj = await getBucket(locals).get(key);
+  const obj = await getBucket().get(key);
   if (!obj) {
     return new Response("No encontrado", { status: 404 });
   }

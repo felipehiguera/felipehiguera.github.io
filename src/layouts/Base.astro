@@ -36,7 +36,7 @@ const siteName = "Felipe Higuera";
 // Las secciones viven en D1: el nav refleja el toggle al instante.
 let secciones: Record<string, boolean> = {};
 try {
-  secciones = await leerSecciones(getDB(Astro.locals));
+  secciones = await leerSecciones(getDB());
 } catch {
   secciones = {};
 }

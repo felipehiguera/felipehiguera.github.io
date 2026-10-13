@@ -5,7 +5,7 @@ import DestacadosCarousel from "../components/DestacadosCarousel.astro";
 import { getDB, leerSecciones, listarProyectos } from "../db/portfolio";
 import { baseUrl } from "../utils/base";
 
-const db = getDB(Astro.locals);
+const db = getDB();
 const secciones = await leerSecciones(db);
 const mostrarProyectos = secciones["proyectos"] !== false;
 const mostrarCv = secciones["cv"] !== false;

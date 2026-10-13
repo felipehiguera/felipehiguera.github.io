@@ -16,7 +16,7 @@ import { baseUrl } from "../../utils/base";
 // SSR: la ruta se resuelve en cada request contra D1. Los borradores no
 // existen acá (leerProyecto los filtra): despublicar sigue siendo real.
 const slug = Astro.params.slug ?? "";
-const data = await leerProyecto(getDB(Astro.locals), slug);
+const data = await leerProyecto(getDB(), slug);
 
 if (!data) {
   return new Response("Proyecto no encontrado", { status: 404 });

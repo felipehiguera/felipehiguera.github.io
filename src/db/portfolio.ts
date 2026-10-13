@@ -1,5 +1,6 @@
-import type { D1Database } from "@cloudflare/workers-types";
+import type { D1Database, R2Bucket } from "@cloudflare/workers-types";
 import { marked } from "marked";
+import { env } from "cloudflare:workers";
 
 /**
  * Capa de datos del portfolio. D1 es la única fuente de verdad.
@@ -142,20 +143,23 @@ export function fechaCorta(fechaIso: string): string {
 }
 
 /**
- * Saca el runtime de Cloudflare (binding D1) desde los locals de Astro.
- * Falla con mensaje claro si no hay runtime (p. ej. `astro dev` sin
- * platformProxy o un adapter que no lo provee).
+ * Binding D1 desde el runtime del Worker. En Astro 6+ no existe
+ * `Astro.locals.runtime.env`: se importa `env` de `cloudflare:workers`.
  */
-export function getDB(locals: unknown): D1Database {
-  const runtime = (locals as { runtime?: { env?: Record<string, unknown> } })
-    .runtime;
-  const db = runtime?.env?.DB;
+export function getDB(): D1Database {
+  const db = (env as unknown as { DB?: unknown }).DB;
   if (!db || typeof db !== "object" || !("prepare" in db)) {
-    throw new Error(
-      "Sin binding D1: en dev, `astro dev` necesita platformProxy con D1 local.",
-    );
+    throw new Error("Sin binding D1: falta DB en el Worker del portfolio.");
   }
   return db as D1Database;
+}
+
+export function getBucket(): R2Bucket {
+  const bucket = (env as unknown as { MEDIA?: unknown }).MEDIA;
+  if (!bucket || typeof bucket !== "object" || !("get" in bucket)) {
+    throw new Error("Sin binding R2: falta MEDIA en el Worker del portfolio.");
+  }
+  return bucket as R2Bucket;
 }
 
 /** Markdown del cuerpo -> HTML. El contenido lo escribe un admin (confiable). */
