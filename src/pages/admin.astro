@@ -685,6 +685,18 @@ const embed = Astro.url.searchParams.has("embed");
     min-height: 0;
   }
 
+  /* El modal Ver necesita alto completo: el genérico centra y el iframe
+     colapsa a su mínimo. Acá se estira a la ventana. */
+  #panel #ver-modal .vista-modal {
+    grid-template-rows: auto 1fr;
+    align-content: stretch;
+  }
+
+  #panel #ver-modal .vista-modal iframe {
+    height: auto;
+    min-height: 0;
+  }
+
   #panel .mini {
     width: 3.5rem;
     height: 3.5rem;
