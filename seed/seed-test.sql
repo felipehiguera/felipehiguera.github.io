@@ -1,5 +1,7 @@
 -- Proyectos de PRUEBA. Datos de ejemplo generados, no trabajo real.
 -- Se borran desde el panel cuando terminen las pruebas.
+-- Idempotente: se puede correr N veces.
+DELETE FROM proyectos WHERE slug IN ('prueba-planimetria', 'prueba-cnc', 'prueba-soporte');
 INSERT INTO proyectos (slug, title, summary, date, featured, draft, category, software, normativa, confidential, cover, model, planos, body) VALUES
 ('prueba-planimetria',
  '[PRUEBA] Planimetría de una placa base',
