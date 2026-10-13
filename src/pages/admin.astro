@@ -70,7 +70,10 @@ const embed = Astro.url.searchParams.has("embed");
         </div>
       )}
 
-      <form id="editor" hidden class="mt-10" novalidate>
+      <div id="editor-modal" hidden>
+        <div id="editor-velo" class="vista-velo"></div>
+        <div class="editor-modal" role="dialog" aria-modal="true" aria-label="Editor del proyecto">
+      <form id="editor" novalidate>
         <div class="tarjeta">
           <div class="tarjeta-cabeza">
             <h2 id="editor-titulo" class="text-lg font-semibold">
@@ -318,8 +321,11 @@ const embed = Astro.url.searchParams.has("embed");
           <button id="exito-seguir" type="button" class="btn">
             Seguir editando
           </button>
-          <button id="exito-cerrar" type="button" class="btn">Cerrar</button>
+          <button id="exito-cerrar" type="button" class="btn">Cerrar todo</button>
         </div>
+      </div>
+
+      </div>
       </div>
 
       {/*
@@ -344,6 +350,26 @@ const embed = Astro.url.searchParams.has("embed");
           <button id="vista-cerrar" type="button" class="btn">
             Cerrar vista previa
           </button>
+        </div>
+      </div>
+
+      {/*
+        Ver proyecto en modal: iframe a la página real. Solo con sesión
+        (esta página ya pasó Access) y lazy para no cargar de más.
+      */}
+      <div id="ver-modal" hidden>
+        <div id="ver-velo" class="vista-velo"></div>
+        <div
+          class="vista-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Ver proyecto"
+        >
+          <div class="ver-barra">
+            <strong>Vista del sitio</strong>
+            <button id="ver-cerrar" type="button" class="btn">Cerrar ✕</button>
+          </div>
+          <iframe id="ver-frame" title="Vista del proyecto"></iframe>
         </div>
       </div>
     </section>
@@ -591,6 +617,72 @@ const embed = Astro.url.searchParams.has("embed");
   #panel .vista-modal .btn {
     pointer-events: auto;
     background: var(--bg);
+  }
+
+  /* Modal de ver: iframe a la página real. */
+  #panel #ver-modal[hidden] {
+    display: none;
+  }
+
+  /* Modal del editor: ocupa casi todo el alto con scroll interno. */
+  #panel #editor-modal[hidden] {
+    display: none;
+  }
+
+  #panel .editor-modal {
+    position: fixed;
+    z-index: 41;
+    inset: 0;
+    display: grid;
+    padding: 3svh 1rem 1rem;
+    pointer-events: none;
+    overflow-y: auto;
+  }
+
+  @media (min-width: 640px) {
+    #panel .editor-modal {
+      padding: 4svh 2rem 2rem;
+    }
+  }
+
+  #panel .editor-modal form {
+    pointer-events: auto;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+    width: 100%;
+    max-width: 56rem;
+    margin: 0 auto;
+    height: fit-content;
+  }
+
+  #panel .ver-barra {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--line);
+    border-bottom: 0;
+    border-radius: 0.75rem 0.75rem 0 0;
+    padding: 0.7rem 1rem;
+    max-width: 56rem;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  #panel .vista-modal iframe {
+    pointer-events: auto;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 0 0 0.75rem 0.75rem;
+    width: 100%;
+    max-width: 56rem;
+    margin: 0 auto;
+    height: 100%;
+    min-height: 0;
   }
 
   #panel .mini {

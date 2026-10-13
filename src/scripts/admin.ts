@@ -185,11 +185,14 @@ function pintarLista() {
 
     const acciones = el("div", { class: "fila-acciones" });
     if (!archivo.draft) {
-      const ver = el("a", { class: "btn", textContent: "Ver" }) as unknown as HTMLAnchorElement;
-      ver.href = `${base}proyectos/${archivo.slug}`;
-      ver.target = "_blank";
-      ver.rel = "noopener";
-      acciones.append(ver);
+      acciones.append(
+        el("button", {
+          class: "btn",
+          type: "button",
+          textContent: "Ver",
+          onclick: () => abrirVista(archivo.slug),
+        }),
+      );
     }
     acciones.append(
       el("button", {
@@ -390,6 +393,20 @@ function cerrarVistaPrevia() {
   mostrar("vista-modal", false);
 }
 
+/** Ver proyecto en modal con iframe a la página real (lazy). */
+function abrirVista(slug: string) {
+  const base = document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
+  const frame = $("#ver-frame") as HTMLIFrameElement;
+  frame.src = `${base}proyectos/${slug}`;
+  mostrar("ver-modal", true);
+  (document.querySelector("#ver-cerrar") as HTMLButtonElement).focus();
+}
+
+function cerrarVista() {
+  mostrar("ver-modal", false);
+  ($("#ver-frame") as HTMLIFrameElement).removeAttribute("src");
+}
+
 /** Muestra la portada actual en el formulario (o la oculta si no hay). */
 function pintarVistaCover(url: string) {
   const img = $("#cover-vista") as HTMLImageElement;
@@ -460,7 +477,7 @@ function pintarPlanos() {
 async function abrirEditor(slug: string | null) {
   const form = $("#editor") as HTMLFormElement;
   form.reset();
-  mostrar("editor", true);
+  mostrar("editor-modal", true);
   mostrar("exito", false);
   mostrar("errores", false);
   $("#portada-estado").textContent = "";
@@ -479,7 +496,7 @@ async function abrirEditor(slug: string | null) {
     const r = await llamar("proyectos.leer", { slug });
     if (!r.ok || !r.proyecto) {
       aviso(r.error ?? "No se pudo leer", "error");
-      mostrar("editor", false);
+      mostrar("editor-modal", false);
       return;
     }
     const p = r.proyecto;
@@ -799,6 +816,12 @@ function cuerpoActual(): string {
   return areaTexto().value;
 }
 
+/** Avisa a la página madre (modal con iframe) que se cerró el editor. */
+function avisarPadreCerrado() {
+  if (!new URLSearchParams(window.location.search).has("embed")) return;
+  window.parent.postMessage({ tipo: "editor-cerrado" }, window.location.origin);
+}
+
 // ----------------------------------------------------------------- arranque
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -806,18 +829,30 @@ document.addEventListener("DOMContentLoaded", () => {
   // esta página. Si el Worker responde 401, falta configurar Access.
   // En modo embed no hay lista ni botón nuevo: solo el editor.
   document.querySelector("#nuevo-proyecto")?.addEventListener("click", () => abrirEditor(null));
-  $("#cancelar").addEventListener("click", () => mostrar("editor", false));
+  $("#cancelar").addEventListener("click", () => mostrar("editor-modal", false));
   $("#exito-seguir").addEventListener("click", () => mostrar("exito", false));
   $("#exito-cerrar").addEventListener("click", () => {
     mostrar("exito", false);
-    mostrar("editor", false);
+    mostrar("editor-modal", false);
   });
   $("#editor").addEventListener("submit", guardar);
   $("#vista-previa").addEventListener("click", abrirVistaPrevia);
   $("#vista-cerrar").addEventListener("click", cerrarVistaPrevia);
   $("#vista-velo").addEventListener("click", cerrarVistaPrevia);
+  $("#ver-cerrar").addEventListener("click", cerrarVista);
+  $("#ver-velo").addEventListener("click", cerrarVista);
+  $("#editor-velo").addEventListener("click", () => {
+    mostrar("editor-modal", false);
+    avisarPadreCerrado();
+  });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !$("#vista-modal").hidden) cerrarVistaPrevia();
+    if (e.key !== "Escape") return;
+    if (!$("#ver-modal").hidden) cerrarVista();
+    else if (!$("#vista-modal").hidden) cerrarVistaPrevia();
+    else if (!$("#editor-modal").hidden) {
+      mostrar("editor-modal", false);
+      avisarPadreCerrado();
+    }
   });
   $("#plano-agregar")?.addEventListener("click", () => {
     const titulo = (
