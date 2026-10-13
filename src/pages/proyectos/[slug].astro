@@ -515,6 +515,12 @@ const html = cuerpoAHtml(data.body);
 
     if (flotante) flotante.addEventListener("click", abrir);
     if (guardarBtn) guardarBtn.addEventListener("click", guardar);
+    // El link superior abre el mismo panel en vez de navegar al admin
+    // (si el JS falla, el href sigue llevando al editor completo).
+    link.addEventListener("click", function (e) {
+      e.preventDefault();
+      abrir();
+    });
     document.getElementById("er-cancelar").addEventListener("click", function () {
       mostrar(false);
     });
