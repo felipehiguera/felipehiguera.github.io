@@ -781,13 +781,10 @@ function areaTexto(): HTMLTextAreaElement {
 /** Instancia única del editor Markdown (se crea al abrir el formulario). */
 let editorMDE: EasyMDE | null = null;
 
-function boton(
-  nombre: string,
-  accion: (editor: EasyMDE) => void,
-  icono: string,
-  titulo: string,
-) {
-  return { name: nombre, action: accion, className: icono, title: titulo };
+function boton(nombre: string, accion: (editor: EasyMDE) => void, titulo: string) {
+  // Sin FontAwesome: el icono va por CSS (máscara SVG inline, ver
+  // `.tb-*::before`). Las fuentes web las bloquea Brave y quedan tofu.
+  return { name: nombre, action: accion, className: `tb tb-${nombre}`, title: titulo };
 }
 
 /** Barra en español: lo esencial para escribir un caso bien. */
@@ -799,18 +796,18 @@ function crearEditorMDE(area: HTMLTextAreaElement): EasyMDE {
     placeholder: "Contá el caso: contexto, proceso, normativa, software, entregable, resultado…",
     maxHeight: "24rem",
     toolbar: [
-      boton("negrita", EasyMDE.toggleBold, "fa-solid fa-bold", "Negrita (Ctrl+B)"),
-      boton("cursiva", EasyMDE.toggleItalic, "fa-solid fa-italic", "Cursiva (Ctrl+I)"),
-      boton("titulo", EasyMDE.toggleHeadingSmaller, "fa-solid fa-heading", "Título"),
-      boton("cita", EasyMDE.toggleBlockquote, "fa-solid fa-quote-left", "Cita"),
-      boton("lista", EasyMDE.toggleUnorderedList, "fa-solid fa-list-ul", "Lista"),
-      boton("numerada", EasyMDE.toggleOrderedList, "fa-solid fa-list-ol", "Lista numerada"),
-      boton("enlace", EasyMDE.drawLink, "fa-solid fa-link", "Enlace (Ctrl+K)"),
-      boton("imagen", EasyMDE.drawImage, "fa-solid fa-image", "Imagen (pega la URL)"),
-      boton("tabla", EasyMDE.drawTable, "fa-solid fa-table", "Tabla"),
-      boton("vista", EasyMDE.togglePreview, "fa-solid fa-eye", "Vista previa"),
-      boton("lado", EasyMDE.toggleSideBySide, "fa-solid fa-columns", "Lado a lado"),
-      boton("pantalla", EasyMDE.toggleFullScreen, "fa-solid fa-expand", "Pantalla completa"),
+      boton("negrita", EasyMDE.toggleBold, "Negrita (Ctrl+B)"),
+      boton("cursiva", EasyMDE.toggleItalic, "Cursiva (Ctrl+I)"),
+      boton("titulo", EasyMDE.toggleHeadingSmaller, "Título"),
+      boton("cita", EasyMDE.toggleBlockquote, "Cita"),
+      boton("lista", EasyMDE.toggleUnorderedList, "Lista"),
+      boton("numerada", EasyMDE.toggleOrderedList, "Lista numerada"),
+      boton("enlace", EasyMDE.drawLink, "Enlace (Ctrl+K)"),
+      boton("imagen", EasyMDE.drawImage, "Imagen (pega la URL)"),
+      boton("tabla", EasyMDE.drawTable, "Tabla"),
+      boton("vista", EasyMDE.togglePreview, "Vista previa"),
+      boton("lado", EasyMDE.toggleSideBySide, "Lado a lado"),
+      boton("pantalla", EasyMDE.toggleFullScreen, "Pantalla completa"),
     ],
   });
 }

@@ -355,6 +355,9 @@ const html = cuerpoAHtml(data.body);
     });
 
     // El probe revela el link y el botón solo con sesión de Access.
+    // En iframe (modal Ver del admin) no se muestra nada: editar desde ahí
+    // sería un loop de modales.
+    if (window.self !== window.top) return;
     fetch(adminUrl, { redirect: "manual" }).then(
       function (r) {
         if (r.status === 200) {
