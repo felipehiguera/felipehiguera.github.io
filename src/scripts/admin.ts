@@ -491,13 +491,21 @@ async function abrirEditor(slug: string | null) {
 
   // EasyMDE reemplaza el textarea: al crear toma su contenido inicial; si ya
   // existe hay que setear por API. Refrescar porque el formulario parte
-  // oculto (CodeMirror mide mal en display:none).
-  if (!editorMDE) {
-    editorMDE = crearEditorMDE(areaTexto());
-  } else {
-    editorMDE.value(areaTexto().value);
+  // oculto (CodeMirror mide mal en display:none). Si falla, se avisa en vez
+  // de dejar el textarea pelado en silencio.
+  try {
+    if (!editorMDE) {
+      editorMDE = crearEditorMDE(areaTexto());
+    } else {
+      editorMDE.value(areaTexto().value);
+    }
+    editorMDE.codemirror.refresh();
+  } catch (e) {
+    aviso(
+      `No arrancó el editor visual: ${e instanceof Error ? e.message : e}. Se puede escribir Markdown a mano igual.`,
+      "error",
+    );
   }
-  editorMDE.codemirror.refresh();
 }
 
 /** Sube un archivo a R2 y devuelve su URL pública (/media/...). */
