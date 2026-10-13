@@ -34,20 +34,31 @@ export const onRequest = defineMiddleware(async (context, next) => {
   // Sin caché para lo no cacheable: pasa directo.
   if (!esCacheable(context.request)) return next();
 
+  // Hard refresh (Ctrl+Shift+R) regenera: el navegador manda
+  // `Cache-Control: no-cache` y eso invalida la entrada guardada. Así, tras
+  // guardar en el panel, recargar muestra los cambios al tiro.
+  const control = context.request.headers.get("cache-control") ?? "";
+  const pragma = context.request.headers.get("pragma") ?? "";
+  const fresco = /no-cache/.test(control) || /no-cache/.test(pragma);
+
   const cache = caches.default;
-  const cached = await cache.match(context.request);
-  if (cached) {
-    const vence = Number(cached.headers.get("X-Cache-Expires") ?? 0);
-    if (vence > Date.now()) {
-      const headers = new Headers(cached.headers);
-      headers.set("X-Cache", "HIT");
-      return new Response(cached.body, {
-        status: cached.status,
-        statusText: cached.statusText,
-        headers,
-      });
+  if (!fresco) {
+    const cached = await cache.match(context.request);
+    if (cached) {
+      const vence = Number(cached.headers.get("X-Cache-Expires") ?? 0);
+      if (vence > Date.now()) {
+        const headers = new Headers(cached.headers);
+        headers.set("X-Cache", "HIT");
+        return new Response(cached.body, {
+          status: cached.status,
+          statusText: cached.statusText,
+          headers,
+        });
+      }
+      // Expirado: se sigue y se regenera abajo.
+      await cache.delete(context.request);
     }
-    // Expirado: se sigue y se regenera abajo.
+  } else {
     await cache.delete(context.request);
   }
 

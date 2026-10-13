@@ -303,6 +303,19 @@ const lista = (v: unknown) => (Array.isArray(v) ? v.map(String).join(", ") : "")
 let planosExistentes: PlanoOk[] = [];
 let planosNuevos: PlanoNuevo[] = [];
 
+/** Muestra la portada actual en el formulario (o la oculta si no hay). */
+function pintarVistaCover(url: string) {
+  const img = $("#cover-vista") as HTMLImageElement;
+  if (url) {
+    const base = document.querySelector("#panel")?.getAttribute("data-base") ?? "/";
+    img.src = /^https?:\/\//.test(url) ? url : `${base}${url.replace(/^\//, "")}`;
+    img.hidden = false;
+  } else {
+    img.removeAttribute("src");
+    img.hidden = true;
+  }
+}
+
 function pintarPlanos() {
   const ul = $("#planos-lista");
   ul.replaceChildren();
@@ -366,6 +379,7 @@ async function abrirEditor(slug: string | null) {
   mostrar("errores", false);
   $("#portada-estado").textContent = "";
   $("#modelo-estado").textContent = "";
+  pintarVistaCover("");
   planosExistentes = [];
   planosNuevos = [];
   pintarPlanos();
@@ -395,6 +409,7 @@ async function abrirEditor(slug: string | null) {
       ? "borrador"
       : "publicado";
     campos.cover.value = p.cover ?? "";
+    pintarVistaCover(p.cover ?? "");
     campos.model.value = p.model ?? "";
     campos.body.value = (p.body || "").trimStart() || PLANTILLA;
     campos._slugOriginal = p.slug;
@@ -542,6 +557,7 @@ async function guardar(evento: Event) {
       $("#portada-estado").textContent = "Subiendo portada…";
       cover = await subirArchivo("portada", slugFinal, portadaFile);
       campos.cover.value = cover;
+      pintarVistaCover(cover);
       $("#portada-estado").textContent = "Portada subida.";
     }
 

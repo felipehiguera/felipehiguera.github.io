@@ -168,6 +168,7 @@ const base = baseUrl();
             <legend>Portada y modelo</legend>
             <label class="grid gap-1">
               <span class="etiqueta">Portada actual</span>
+              <img id="cover-vista" class="cover-vista" alt="" hidden />
               <input
                 name="cover"
                 class="campo tech"
@@ -613,6 +614,14 @@ const base = baseUrl();
   #panel .chip.ok {
     color: var(--accent-ink);
     border-color: var(--accent);
+  }
+
+  #panel .cover-vista {
+    width: 100%;
+    max-width: 22rem;
+    height: auto;
+    border: 1px solid var(--line);
+    border-radius: 0.375rem;
   }
 
   #panel .caja-error {
