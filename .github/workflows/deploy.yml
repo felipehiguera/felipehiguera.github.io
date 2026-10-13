@@ -60,3 +60,19 @@ jobs:
         run: |
           npm ci --prefix workers/admin
           npx --no-install wrangler deploy --config workers/admin/wrangler.toml
+
+  # Tests de humo contra producción. Van DESPUÉS de desplegar: si fallan, el
+  # deploy ya salió, pero el workflow queda en rojo como señal. No hay
+  # rollback automático: se arregla hacia adelante.
+  smoke:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Smoke tests
+        # 30s para que el edge propague el deploy antes de medir.
+        run: |
+          sleep 30
+          node tests/smoke.mjs

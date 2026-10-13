@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# El portfolio vive bajo /portafolio: el sitemap sale de D1.
+Sitemap: https://www.fhiguera.fyi/portafolio/sitemap-index.xml

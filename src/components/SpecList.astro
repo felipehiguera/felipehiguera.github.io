@@ -12,19 +12,19 @@ const { software, normativa, entregable } = Astro.props;
   <div>
     <dt class="font-semibold" style="color: var(--fg)">Software</dt>
     <dd class="mt-1" style="color: var(--muted)">
-      {software.length > 0 ? software.join(" · ") : "TODO: por confirmar"}
+      {software.length > 0 ? software.join(" · ") : "Sin especificar"}
     </dd>
   </div>
   <div>
     <dt class="font-semibold" style="color: var(--fg)">Normativa</dt>
     <dd class="mt-1" style="color: var(--muted)">
-      {normativa.length > 0 ? normativa.join(" · ") : "TODO: por confirmar"}
+      {normativa.length > 0 ? normativa.join(" · ") : "Sin especificar"}
     </dd>
   </div>
   <div>
     <dt class="font-semibold" style="color: var(--fg)">Entregable</dt>
     <dd class="mt-1" style="color: var(--muted)">
-      {entregable.length > 0 ? entregable.join(" · ") : "TODO: por definir"}
+      {entregable.length > 0 ? entregable.join(" · ") : "Sin definir"}
     </dd>
   </div>
 </dl>

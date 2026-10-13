@@ -1,11 +1,9 @@
 ---
-import { existsSync } from "node:fs";
 import Base from "../layouts/Base.astro";
 import CvPreview from "../components/CvPreview.astro";
 import { baseUrl } from "../utils/base";
 
 const base = baseUrl();
-const cvExiste = existsSync("public/cv/CV-Felipe-Higuera.pdf");
 
 interface Experiencia {
   cargo: string;
@@ -76,17 +74,9 @@ const habilidades: { grupo: string; items: string }[] = [
       Maipú, Santiago, Chile · Dibujo técnico industrial · CAD/CAM · Soporte IT
     </p>
     <p class="mt-4">
-      {
-        cvExiste ? (
-          <a href={`${base}cv/CV-Felipe-Higuera.pdf`} download>
-            Descargar CV en PDF
-          </a>
-        ) : (
-          <span class="tech text-sm" style="color: var(--muted)">
-            TODO: PDF del CV pendiente (public/cv/CV-Felipe-Higuera.pdf)
-          </span>
-        )
-      }
+      <a href={`${base}cv/CV-Felipe-Higuera.pdf`} download>
+        Descargar CV en PDF
+      </a>
     </p>
 
     <section aria-labelledby="exp" class="mt-10">
