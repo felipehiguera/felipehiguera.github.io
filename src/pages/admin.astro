@@ -40,7 +40,10 @@ const embed = Astro.url.searchParams.has("embed");
           Salir cierra la sesión de Cloudflare Access (endpoint oficial:
           limpia la cookie JWT del equipo). No hay sesión propia que romper.
         */}
-        <a href="https://mhiguera.cloudflareaccess.com/cdn-cgi/access/logout">
+        <a
+          href="https://mhiguera.cloudflareaccess.com/cdn-cgi/access/logout"
+          id="salir"
+        >
           Salir →
         </a>
       </p>
@@ -938,4 +941,12 @@ const embed = Astro.url.searchParams.has("embed");
 
 <script>
   import "../scripts/admin";
+</script>
+
+<script>
+  // Confirmar antes de salir: el login es por código al correo y volver a
+  // entrar toma un rato.
+  document.getElementById("salir")?.addEventListener("click", (e) => {
+    if (!window.confirm("¿Cerrar la sesión del panel?")) e.preventDefault();
+  });
 </script>
