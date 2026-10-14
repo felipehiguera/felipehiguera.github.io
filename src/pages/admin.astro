@@ -34,7 +34,16 @@ const embed = Astro.url.searchParams.has("embed");
   <div class="mx-auto max-w-3xl px-4 py-10">
     <div class="flex flex-wrap items-baseline justify-between gap-2">
       <h1 class="text-2xl font-bold">Administración</h1>
-      <a href={base}>← Volver al sitio</a>
+      <p class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <a href={base}>← Volver al sitio</a>
+        {/*
+          Salir cierra la sesión de Cloudflare Access (endpoint oficial:
+          limpia la cookie JWT del equipo). No hay sesión propia que romper.
+        */}
+        <a href="https://mhiguera.cloudflareaccess.com/cdn-cgi/access/logout">
+          Salir →
+        </a>
+      </p>
     </div>
 
     <div id="aviso" class="mt-4" role="status" hidden></div>
